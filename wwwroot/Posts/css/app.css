@@ -215,6 +215,8 @@ x{
 .aboutContainer {
     padding: 20px;
     text-align: center;
+    overflow: auto;
+    max-height: 100%;
 }
 
 .aboutContainer p {
