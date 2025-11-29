@@ -64,9 +64,6 @@ x{
     justify-content: flex-end;
 }
 
-#menu {}
-
-
 .blink {
     animation: blinker 3s linear infinite;
 }
