@@ -16,7 +16,7 @@ let itemLayout;
 let waiting = null;
 let showKeywords = false;
 let keywordsOnchangeTimger = null;
-
+let authenticatedUser = false;
 
 Init_UI();
 async function Init_UI() {
@@ -159,6 +159,189 @@ function showAbout() {
     $("#aboutContainer").show();
 }
 
+///////////////////////////// Authentication & user forms //////////////////////////////////////
+
+function showLoginForm() {
+    hidePosts();
+    $("#viewTitle").text("Connexion");
+    $("#form").show().empty();
+
+    $('#commit').hide();  // On enlève commit
+    $('#abort').show();   // Abort reste fonctionnel
+
+    renderLoginForm();
+}
+
+function showRegisterForm() {
+    showUserForm("Inscription", "register");
+}
+
+function showProfileForm() {
+    showUserForm("Mon profil", "profile");
+}
+
+function showUserForm(title, formType) {
+    hidePosts();
+    $("#viewTitle").text(title);
+    $("#form").show().empty();
+    $("#commit").hide();
+    $("#abort").show();
+
+    renderUserForm(formType);
+}
+
+function renderLoginForm() {
+
+    $("#form").empty();
+
+    $("#form").append(`
+        <form id="loginForm" class="form">
+            <label for="email">Courriel :</label>
+            <input class="form-control" type="email" id="email" required>
+
+            <label for="password">Mot de passe :</label>
+            <input class="form-control" type="password" id="password" required>
+
+            <div class="mt-3 d-flex flex-column gap-2">
+                <button type="submit" class="btn btn-primary">Entrer</button>
+                <button type="button" class="btn btn-secondary" id="btnRegister">Nouveau compte</button>
+            </div>
+        </form>
+    `);
+
+    // Bouton Entrer
+    $("#loginForm").on("submit", async function (e) {
+        e.preventDefault();
+
+        const credentials = {
+            Email: $("#email").val(),
+            Password: $("#password").val()
+        };
+
+        const result = await Users_API.Login(credentials);
+
+        if (!Users_API.error && result) {
+            authenticatedUser = true;
+            currentUser = result.user;
+            updateDropDownMenu();
+            await showPosts(true);
+        } else {
+            const msg = Users_API.currentHttpError || "Identifiants invalides";
+            showError(msg);
+        }
+    });
+
+    // Nouveau compte
+    $("#btnRegister").on("click", () => showRegisterForm());
+
+    // Abort → retour au fil
+    $('#abort').off().on("click", async () => showPosts(true));
+}
+
+function renderUserForm(formType) {
+
+    const isRegister = formType === "register";
+    const isProfile  = formType === "profile";
+
+    $("#form").empty();
+
+    $("#form").append(`
+        <form id="userForm" class="form">
+            <label for="email">Courriel :</label>
+            <input class="form-control" type="email" id="email" required ${isProfile ? "disabled" : ""}>
+
+            <label for="password">Mot de passe :</label>
+            <input class="form-control" type="password" id="password" required>
+
+            <label for="fullname">Nom complet :</label>
+            <input class="form-control" type="text" id="fullname" required>
+
+            <div class="mt-3 d-flex flex-column gap-2">
+                <button type="submit" class="btn btn-primary">
+                    Enregistrer
+                </button>
+
+                ${isRegister ? `
+                    <button type="button" class="btn btn-secondary" id="btnCancel">Annuler</button>
+                ` : `
+                    <button type="button" class="btn btn-danger" id="btnDelete">
+                        Effacer le compte
+                    </button>
+                `}
+            </div>
+        </form>
+    `);
+
+    // Charger profil si modification
+    if (isProfile && currentUser) {
+        $("#email").val(currentUser.Email);
+        $("#fullname").val(currentUser.Name);
+    }
+
+    // Enregistrer
+    $("#userForm").on("submit", async function (e) {
+        e.preventDefault();
+
+        const userPayload = {
+            Name: $("#fullname").val(),
+            Email: $("#email").val(),
+            Password: $("#password").val()
+        };
+
+        let result;
+        if (isRegister) {
+            // POST /accounts/register
+            result = await Users_API.Register(userPayload);
+        } else {
+            // PUT /accounts/modify
+            userPayload.Id = currentUser.Id; // nécessaire pour AccountsController
+            result = await Users_API.Update(userPayload);
+        }
+
+        if (!Users_API.error && result) {
+            authenticatedUser = true;
+            currentUser = result; // AccountsController renvoie le nouvel utilisateur ou modifié
+            updateDropDownMenu();
+            await showPosts(true);
+        } else {
+            showError(Users_API.currentHttpError || "Impossible d'enregistrer l'utilisateur");
+        }
+    });
+
+    // Annuler inscription
+    if (isRegister) {
+        $("#btnCancel").on("click", async () => showPosts(true));
+    }
+
+    // Effacer compte
+    if (!isRegister) {
+        $("#btnDelete").on("click", async () => {
+            if (!currentUser?.Id) return;
+            const deleted = await Users_API.Delete(currentUser.Id); // utilise Id
+            if (!Users_API.error && deleted) {
+                authenticatedUser = false;
+                currentUser = null;
+                updateDropDownMenu();
+                await showPosts(true);
+            } else {
+                showError(Users_API.currentHttpError || "Impossible d'effacer le compte");
+            }
+        });
+    }
+
+    // Abort → retour posts
+    $('#abort').off().on("click", async () => showPosts(true));
+}
+
+function userCanEdit(post) {
+    if (!authenticatedUser || !currentUser) return false;
+
+    // Admins ou supers
+    if (currentUser.isAdmin || currentUser.isSuper) return true;
+
+    // Propriétaire du post
+    return post.OwnerEmail === currentUser.Email;
+}
 //////////////////////////// Posts rendering /////////////////////////////////////////////////////////////
 
 function start_Periodic_Refresh() {
@@ -234,12 +417,16 @@ async function renderPosts(container, queryString) {
 }
 function renderPost(post) {
     let date = convertToFrenchDate(UTC_To_Local(post.Date));
+    const canEdit = userCanEdit(post);
+
     return $(`
         <div class="post" id="${post.Id}" etag="${currentETag}">
             <div class="postHeader">
                 ${post.Category}
+                ${canEdit ? `
                 <span class="editCmd cmdIconSmall fa fa-pencil" postId="${post.Id}" title="Modifier nouvelle"></span>
                 <span class="deleteCmd cmdIconSmall fa fa-trash" postId="${post.Id}" title="Effacer nouvelle"></span>
+                ` : ''}
             </div>
             <div class="postTitle"> ${post.Title} </div>
             <img class="postImage" src='${post.Image}'/>
@@ -274,8 +461,18 @@ async function compileCategories() {
 function updateDropDownMenu() {
     let DDMenu = $("#DDMenu");
     let selectClass = selectedCategory === "" ? "fa-check" : "fa-fw";
-    DDMenu.empty();
+    let authLabel = authenticatedUser ? "Déconnexion" : "Connexion";
+    let authIcon = authenticatedUser 
+        ? "fa-solid fa-arrow-right-from-bracket" 
+        : "fa-solid fa-arrow-right-to-bracket";
 
+    DDMenu.empty();
+    DDMenu.append($(`
+        <div class="dropdown-item menuItemLayout" id="authCmd">
+            <i class="menuIcon ${authIcon} mx-2"></i> ${authLabel}
+        </div>
+        `));
+    DDMenu.append($(`<div class="dropdown-divider"></div>`));
     DDMenu.append($(`
         <div class="dropdown-item menuItemLayout" id="allCatCmd">
             <i class="menuIcon fa ${selectClass} mx-2"></i> Toutes les catégories
@@ -300,6 +497,16 @@ function updateDropDownMenu() {
             <i class="menuIcon fa fa-info-circle mx-2"></i> À propos...
         </div>
         `));
+    $('#authCmd').on("click", async function () {
+        if (authenticatedUser) {
+            await Posts_API.logout();
+            authenticatedUser = false;
+            await showPosts(true);
+            updateDropDownMenu();
+        } else {
+            showLoginForm();
+        }
+    });
     $('#aboutCmd').on("click", function () {
         showAbout();
     });
