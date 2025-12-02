@@ -77,7 +77,7 @@ class Users_API {
 
         return new Promise(resolve => {
             $.ajax({
-                url: this.serverHost() + "/accounts/register",
+                url: this.serverHost() + "/Accounts/register",
                 type: "POST",
                 contentType: "application/json",
                 data: JSON.stringify(newUser),
