@@ -13,6 +13,10 @@ export default class Post extends Model {
         this.setKey("Title");
     }
 
-    // Ajouter bind et join 
-    // this.bind or join (extends de Model)
+    // Ajouter join avec bindExtraData()
+    // this.join (extends de Model)
+    bindExtraData(post) {
+        this.join(post, "Likes", Like, User, "Name");
+        return post;
+    }
 }
