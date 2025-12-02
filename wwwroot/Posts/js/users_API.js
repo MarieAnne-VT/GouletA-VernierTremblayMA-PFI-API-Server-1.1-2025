@@ -70,6 +70,25 @@ class Users_API {
     }
 
     // ---------------------------
+    // LOGOUT
+    // ---------------------------
+    static async Logout(user) {
+        this.initHttpState();
+
+        return new Promise(resolve => {
+            $.ajax({
+                url: this.serverHost() + "/Accounts/logout/",
+                type: "GET",
+                data: { userId: user.Id },
+                contentType: "application/json",
+                // success: (data) => resolve(data),
+                complete: (data) => {resolve(data.responseJSON)},
+                error: (xhr) => { this.setHttpErrorState(xhr); resolve(null); }
+            });
+        });
+    }
+
+    // ---------------------------
     // REGISTER
     // ---------------------------
     static async Register(newUser) {

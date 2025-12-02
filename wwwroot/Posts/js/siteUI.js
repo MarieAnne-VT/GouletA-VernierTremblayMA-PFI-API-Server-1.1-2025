@@ -17,6 +17,7 @@ let waiting = null;
 let showKeywords = false;
 let keywordsOnchangeTimger = null;
 let authenticatedUser = false;
+let currentUser = null;
 
 Init_UI();
 async function Init_UI() {
@@ -196,11 +197,11 @@ function renderLoginForm() {
 
     $("#form").append(`
         <form id="loginForm" class="form">
-            <label for="email">Courriel :</label>
-            <input class="form-control" type="email" id="email" required>
+            <label for="Email">Courriel :</label>
+            <input class="form-control" type="email" id="Email" name="Email" required>
 
-            <label for="password">Mot de passe :</label>
-            <input class="form-control" type="password" id="password" required>
+            <label for="Password">Mot de passe :</label>
+            <input class="form-control" type="password" id="Password" name="Password" required>
 
             <div class="mt-3 d-flex flex-column gap-2">
                 <button type="submit" class="btn btn-primary">Entrer</button>
@@ -213,10 +214,7 @@ function renderLoginForm() {
     $("#loginForm").on("submit", async function (e) {
         e.preventDefault();
 
-        const credentials = {
-            Email: $("#email").val(),
-            Password: $("#password").val()
-        };
+        const credentials = getFormData($("#loginForm"));
 
         const result = await Users_API.Login(credentials);
 
@@ -247,15 +245,27 @@ function renderUserForm(formType) {
 
     $("#form").append(`
         <form id="userForm" class="form">
-            <label for="email">Courriel :</label>
-            <input class="form-control" type="email" id="email" required ${isProfile ? "disabled" : ""}>
+            <label for="Email">Courriel :</label>
+            <input class="form-control" type="email" id="Email" name="Email" required ${isProfile ? "disabled" : ""}>
 
-            <label for="password">Mot de passe :</label>
-            <input class="form-control" type="password" id="password" required>
+            <label for="Password">Mot de passe :</label>
+            <input class="form-control" type="password" id="Password" name="Password" required>
 
-            <label for="fullname">Nom complet :</label>
-            <input class="form-control" type="text" id="fullname" required>
-
+            <label for="Name">Nom complet :</label>
+            <input class="form-control" type="text" id="Name" name="Name" required>
+            ${( isRegister || isProfile ) ? 
+                `
+                <label class="form-label">Avatar </label>
+                <div class='imageUploaderContainer'>
+                    <div class='imageUploader' 
+                        newImage='${isProfile}' 
+                        controlId='Avatar' 
+                        imageSrc='${'https://duckduckgo.com/i/8ad526d2092ee39b.png'}' 
+                        waitingImage="Loading_icon.gif">
+                    </div>
+                </div>
+                `
+            : ``}
             <div class="mt-3 d-flex flex-column gap-2">
                 <button type="submit" class="btn btn-primary">
                     Enregistrer
@@ -272,21 +282,24 @@ function renderUserForm(formType) {
         </form>
     `);
 
+    initImageUploaders();
     // Charger profil si modification
     if (isProfile && currentUser) {
-        $("#email").val(currentUser.Email);
-        $("#fullname").val(currentUser.Name);
+        $("#Email").val(currentUser.Email);
+        $("#Name").val(currentUser.Name);
     }
 
     // Enregistrer
     $("#userForm").on("submit", async function (e) {
         e.preventDefault();
 
-        const userPayload = {
-            Name: $("#fullname").val(),
-            Email: $("#email").val(),
-            Password: $("#password").val()
-        };
+        const userPayload = getFormData($("#userForm"));
+        // {
+        //     Name: $("#Name").val(),
+        //     Email: $("#Email").val(),
+        //     Password: $("#Password").val(),
+        //     Avatar: $("#Avatar")
+        // };
 
         let result;
         if (isRegister) {
@@ -507,7 +520,7 @@ function updateDropDownMenu() {
         `));
     $('#authCmd').on("click", async function () {
         if (authenticatedUser) {
-            await Posts_API.logout();
+            await Users_API.Logout(currentUser.User);
             authenticatedUser = false;
             await showPosts(true);
             updateDropDownMenu();
