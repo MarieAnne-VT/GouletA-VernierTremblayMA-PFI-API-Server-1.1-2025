@@ -177,7 +177,7 @@ function showRegisterForm() {
 }
 
 function showProfileForm() {
-    showUserForm("Mon profil", "profile");
+    showUserForm("Mon profil", "edit");
 }
 
 function showUserForm(title, formType) {
