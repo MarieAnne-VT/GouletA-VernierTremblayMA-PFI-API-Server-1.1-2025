@@ -241,7 +241,7 @@ function renderLoginForm() {
 function renderUserForm(formType) {
 
     const isRegister = formType === "register";
-    const isProfile  = formType === "profile";
+    const isProfile  = formType === "edit";
 
     $("#form").empty();
 
@@ -342,6 +342,10 @@ function userCanEdit(post) {
     // Propriétaire du post
     return post.OwnerEmail === currentUser.Email;
 }
+
+function userCanCreate() {
+    return authenticatedUser && currentUser != null;
+}
 //////////////////////////// Posts rendering /////////////////////////////////////////////////////////////
 
 function start_Periodic_Refresh() {
@@ -386,9 +390,13 @@ async function updatePost(postId) {
 }
 async function renderPosts(container, queryString) {
     addWaitingGif();
+    const canCreate = userCanCreate();
 
     let endOfData = false;
     queryString += "&sort=-date";
+    if (!canCreate)
+        $("#createPost").hide();
+    
     compileCategories();
     if (selectedCategory != "") queryString += "&category=" + selectedCategory;
     if (showKeywords) {
