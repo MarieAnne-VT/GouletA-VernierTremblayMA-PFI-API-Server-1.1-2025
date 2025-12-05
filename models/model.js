@@ -10,6 +10,10 @@ import * as AssetsRepository from './assetsManager.js';
 export default class Model {
     constructor(securedId = false) {
         this.fields = [];
+        this.joints = [];
+        this.binds = [];
+        this.deleteCascades = [];
+
         if (securedId)
             this.addField('Id', 'string');
         else
@@ -82,6 +86,28 @@ export default class Model {
             }
         }
     }
+    addJoint(name, linkModel, targetModel, selectedMembers = "") {
+        this.joints.push({ name, linkModel, targetModel, selectedMembers });
+    }
+    addBind(foreignKeyName, sourceModel, selectedMembers = "") {
+        this.binds.push({ foreignKeyName, sourceModel, selectedMembers });
+    }
+    addDeleteCascades( targetModel, foreignKeyName = "" /* use default foreign key naming */) {
+        if (foreignKeyName == "")
+            foreignKeyName = this.getClassName() + "Id";
+        this.deleteCascades.push({targetModel, foreignKeyName});
+    }
+    deleteCascade(instance, targetModel, foreignKeyName) {
+        let tm = new targetModel();
+        let targetModelRepository = new Repository(tm);
+        let targetedRecords = targetModelRepository.findByFilter(r=> r[foreignKeyName] == instance.Id);
+        let indexToDelete = [];
+        targetedRecords.forEach( tr => {
+            tm.handleDeleteCascades(tr);
+            indexToDelete.push(targetModelRepository.indexOf(tr.Id));
+        })
+        targetModelRepository.removeByIndex(indexToDelete);
+    }
     join(instance, jointName, jointModel, targetModel, selectedMembers = "") {
         let jointModelRepository = new Repository(new jointModel());
         let targetModelRepository = new Repository(new targetModel());
@@ -104,8 +130,7 @@ export default class Model {
         }
         instance[jointName] = jointRecords;
     }
-
-    async bind(instance, foreignKeyName, sourceModel, selectedMembers = "") {
+    bind(instance, foreignKeyName, sourceModel, selectedMembers = "") {
         let sourceModelRepository = new Repository(new sourceModel());
         let sourceModelRecord = sourceModelRepository.get(instance[foreignKeyName]);
         foreignKeyName = foreignKeyName.slice(0, -2); // remove Id caracters
@@ -128,7 +153,21 @@ export default class Model {
             }
         }
     }
-
+    handleDeleteCascades(instance) {
+        this.deleteCascades.forEach(deleteCascade => {
+            this.deleteCascade(instance, deleteCascade.targetModel, deleteCascade.foreignKeyName);
+        })
+    }
+    handleJoins(instance) {
+        this.joints.forEach(joint => {
+            this.join(instance, joint.name, joint.linkModel, joint.targetModel, joint.selectedModel);
+        })
+    }
+    handleBinds(instance) {
+        this.binds.forEach(bind => {
+            this.bind(instance, bind.foreignKeyName, bind.sourceModel, bind.selectedMembers);
+        })
+    }
     handleAssets(instance, storedInstance = null) {
         this.fields.forEach(field => {
             if ((field.name in instance) && (field.type == "asset")) {
@@ -164,5 +203,9 @@ export default class Model {
         this.addHostReferenceToAssetFileNames(instanceCopy);
         return instanceCopy;
     }
-    bindExtraData(instance) { return instance; }
+    bindExtraData(instance) { 
+        this.handleJoins(instance);
+        this.handleBinds(instance);
+        return instance; 
+    }
 }

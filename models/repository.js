@@ -17,28 +17,25 @@ global.jsonFilesPath = "jsonFiles";
 
 export default class Repository {
     constructor(ModelClass, cached = true) {
-        if (ModelClass == null) {
-            throw new Error("Cannot instantiate a repository with a null model.");
-        }
         this.objectsList = null;
         this.model = ModelClass;
         this.objectsName = ModelClass.getClassName() + "s";
         this.objectsFile = `./jsonFiles/${this.objectsName}.json`;
-        this.errorMessages = [];
         this.cached = cached;
         this.initEtag();
+        this.errorMessages = [];
     }
     valid() {
         return this.errorMessages.length == 0;
     }
     initEtag() {
-        if (this.objectsName in global.repositoryEtags)
-            this.ETag = global.repositoryEtags[this.objectsName];
+        if (this.objectsName in repositoryEtags)
+            this.ETag = repositoryEtags[this.objectsName];
         else this.newETag();
     }
     static getETag(modelName) {
-        if (modelName in global.repositoryEtags)
-            return global.repositoryEtags[modelName];
+        if (modelName in repositoryEtags)
+            return repositoryEtags[modelName];
         else null;
     }
     newETag() {
@@ -46,12 +43,10 @@ export default class Repository {
         // this is usefull when client want to check if 
         // the count of items has changed
         this.ETag = this.count() + "-" + uuidv1();
-        global.repositoryEtags[this.objectsName] = this.ETag;
+        repositoryEtags[this.objectsName] = this.ETag;
     }
     objects() {
-        // Check if data is not already in memory
-        if (this.objectsList == null)
-            this.read();
+        if (this.objectsList == null) this.read();
         return this.objectsList;
     }
     count() {
@@ -89,6 +84,7 @@ export default class Repository {
             RepositoryCachesManager.add(this.objectsName, this.objectsList);
         }
     }
+
     createId() {
         if (this.model.securedId) {
             let newId = '';
@@ -104,6 +100,7 @@ export default class Repository {
             return maxId + 1;
         }
     }
+
     checkConflict(instance) {
         let conflict = false;
         if (this.model.key)
@@ -133,7 +130,7 @@ export default class Repository {
         return object;
     }
     update(id, object, handleAssets = true) {
-        let objectToModify = { ...object };
+        let objectToModify = {...object}; 
         delete objectToModify.Id;
         if (!this.model.securedId)
             id = parseInt(id);
@@ -154,7 +151,7 @@ export default class Repository {
                 this.model.state.notFound = true;
             }
         }
-        return this.get(objectToModify.Id);
+        return this.get(objectToModify.Id); /* return binded data */
     }
     remove(id) {
         let index = 0;
@@ -162,6 +159,8 @@ export default class Repository {
             id = parseInt(id);
         for (let object of this.objects()) {
             if (object.Id === id) {
+                this.model.removeAssets(object);
+                this.model.handleDeleteCascades(object);
                 this.objectsList.splice(index, 1);
                 this.write();
                 return true;
@@ -178,7 +177,7 @@ export default class Repository {
                 if (dontBind)
                     bindedDatas.push(this.model.completeAssetsPath(data));
                 else
-                    bindedDatas.push(this.model.bindExtraData(this.model.completeAssetsPath(data)));
+                    bindedDatas.push(this.model.bindExtraData( this.model.completeAssetsPath(data)));
             }
         let collectionFilter = new CollectionFilter(bindedDatas, params, this.model);
         if (collectionFilter.valid())
@@ -195,9 +194,9 @@ export default class Repository {
             if (object.Id === id) {
 
                 if (dontBind)
-                    return this.model.completeAssetsPath(object);
+                    return  this.model.completeAssetsPath(object);
                 else
-                    return this.model.bindExtraData(this.model.completeAssetsPath(object));
+                    return this.model.bindExtraData( this.model.completeAssetsPath(object));
             }
         }
         return null;
