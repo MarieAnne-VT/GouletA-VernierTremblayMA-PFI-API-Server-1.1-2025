@@ -1,6 +1,7 @@
 import Model from './model.js';
 import UserModel from './user.js';              // important pour addBind
 import PostLikeModel from './postlike.js';      // important pour addJoint et addDeleteCascade
+
 export default class Post extends Model {
     constructor() {
         super(true /* secured Id */);
