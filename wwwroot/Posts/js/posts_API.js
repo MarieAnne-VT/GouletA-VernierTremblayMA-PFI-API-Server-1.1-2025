@@ -9,6 +9,7 @@ class Posts_API {
         return "http://localhost:5000";
     }
     static POSTS_API_URL() { return this.serverHost() + "/api/posts" };
+    static LIKES_API_URL() { return this.serverHost() + "/api/postlikes" };
 
     static initHttpState() {
         this.currentHttpError = "";
@@ -84,6 +85,70 @@ class Posts_API {
                 error: (xhr) => {
                     Posts_API.setHttpErrorState(xhr); resolve(null);
                 }
+            });
+        });
+    }
+
+    static async ToggleLike(postId) {
+        const loggedUser = Users_API.RetrieveLoggedUser();
+        if (!loggedUser) {
+            showError("Vous devez être connecté pour aimer un post.");
+            return null;
+        }
+
+        this.initHttpState();
+
+        // Vérifier si l'utilisateur a déjà liké le post
+        let existingLike = await this.GetLikesForPost(postId)
+            .then(likes => likes.find(like => like.UserId === loggedUser.Id))
+            .catch(() => null);
+
+        if (existingLike) {
+            // Supprimer le like existant
+            return new Promise(resolve => {
+                $.ajax({
+                    url: this.LIKES_API_URL() + `/${existingLike.Id}`,
+                    type: "DELETE",
+                    contentType: "application/json",
+                    success: async () => {
+                        const updatedLikes = await this.GetLikesForPost(postId);
+                        resolve(updatedLikes);
+                    },
+                    error: xhr => { 
+                        this.setHttpErrorState(xhr); 
+                        resolve(null); 
+                    }
+                });
+            });
+        } else {
+            // Ajouter un nouveau like
+            const payload = { PostId: postId, UserId: loggedUser.Id };
+            return new Promise(resolve => {
+                $.ajax({
+                    url: this.LIKES_API_URL(),
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(payload),
+                    success: async () => {
+                        const updatedLikes = await this.GetLikesForPost(postId);
+                        resolve(updatedLikes);
+                    },
+                    error: xhr => {
+                        this.setHttpErrorState(xhr);
+                        resolve(null);
+                    }
+                });
+            });
+        }
+    }
+
+    static async GetLikesForPost(postId) {
+        this.initHttpState();
+        return new Promise(resolve => {
+            $.ajax({
+                url: this.LIKES_API_URL() + `?PostId=${postId}`, // <-- correction ici
+                complete: data => resolve(data.responseJSON),
+                error: xhr => { this.setHttpErrorState(xhr); resolve([]); }
             });
         });
     }

@@ -46,6 +46,15 @@ class Users_API {
         });
     }
 
+    static RetrieveLoggedUser() {
+    let data = sessionStorage.getItem("loggedUser");
+    if (!data) return null;
+
+    const parsed = JSON.parse(data);
+    return parsed.User ?? null;
+}
+
+
     // ---------------------------
     // LOGIN
     // ---------------------------
@@ -59,6 +68,7 @@ class Users_API {
                 contentType: "application/json",
                 data: JSON.stringify(credentials),
                 success: (data) => {
+                    sessionStorage.setItem("loggedUser", JSON.stringify(data));
                     resolve({ user: data });
                 },
                 error: (xhr) => { 
@@ -82,7 +92,10 @@ class Users_API {
                 data: { userId: user.Id },
                 contentType: "application/json",
                 // success: (data) => resolve(data),
-                complete: (data) => {resolve(data.responseJSON)},
+                complete: (data) => {
+                    sessionStorage.removeItem("loggedUser");
+                    resolve(data.responseJSON)
+                },
                 error: (xhr) => { this.setHttpErrorState(xhr); resolve(null); }
             });
         });

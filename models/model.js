@@ -160,7 +160,7 @@ export default class Model {
     }
     handleJoins(instance) {
         this.joints.forEach(joint => {
-            this.join(instance, joint.name, joint.linkModel, joint.targetModel, joint.selectedModel);
+            this.join(instance, joint.name, joint.linkModel, joint.targetModel, joint.selectedMembers);
         })
     }
     handleBinds(instance) {

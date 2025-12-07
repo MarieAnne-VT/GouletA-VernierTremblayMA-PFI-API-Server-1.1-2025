@@ -21,6 +21,12 @@ let currentUser = null;
 
 Init_UI();
 async function Init_UI() {
+    const storedUser = Users_API.RetrieveLoggedUser();
+    if (storedUser) {
+        authenticatedUser = true;
+        currentUser = storedUser;
+    }
+
     postsPanel = new PageManager('postsScrollPanel', 'postsPanel', 'postSample', renderPosts);
     $('#createPost').on("click", async function () {
         showCreatePostForm();
@@ -172,15 +178,12 @@ function showLoginForm() {
 
     renderLoginForm();
 }
-
 function showRegisterForm() {
     showUserForm("Inscription", "register");
 }
-
 function showProfileForm() {
     showUserForm("Mon profil", "edit");
 }
-
 function showUserForm(title, formType) {
     hidePosts();
     $("#viewTitle").text(title);
@@ -190,7 +193,6 @@ function showUserForm(title, formType) {
 
     renderUserForm(formType);
 }
-
 function renderLoginForm() {
 
     $("#form").empty();
@@ -235,7 +237,6 @@ function renderLoginForm() {
     // Abort → retour au fil
     $('#abort').off().on("click", async () => showPosts(true));
 }
-
 function renderUserForm(formType) {
 
     const isRegister = formType === "register";
@@ -345,20 +346,6 @@ function renderUserForm(formType) {
     // Abort → retour posts
     $('#abort').off().on("click", async () => showPosts(true));
 }
-
-function userCanEdit(post) {
-    if (!authenticatedUser || !currentUser) return false;
-
-    // Admins ou supers
-    if (currentUser.isAdmin || currentUser.isSuper) return true;
-
-    // Propriétaire du post
-    return post.OwnerEmail === currentUser.Email;
-}
-
-function userCanCreate() {
-    return authenticatedUser && currentUser != null;
-}
 //////////////////////////// Posts rendering /////////////////////////////////////////////////////////////
 
 function start_Periodic_Refresh() {
@@ -373,7 +360,6 @@ function start_Periodic_Refresh() {
     },
         periodicRefreshPeriod * 1000);
 }
-
 function updateVisiblePosts() {
     $('.post').each(async function () {
         if ($(this).isInViewport()) {
@@ -382,7 +368,6 @@ function updateVisiblePosts() {
     })
     compileCategories();
 }
-
 async function updatePost(postId) {
     let postElem = $(`.post[id=${postId}]`);
     let response = await Posts_API.Get(postId);
@@ -403,11 +388,11 @@ async function updatePost(postId) {
 }
 async function renderPosts(container, queryString) {
     addWaitingGif();
-    const canCreate = userCanCreate();
+    let loggedUser = Users_API.RetrieveLoggedUser();
 
     let endOfData = false;
     queryString += "&sort=-date";
-    if (!canCreate)
+    if (!loggedUser)
         $("#createPost").hide();
     
     compileCategories();
@@ -437,21 +422,57 @@ async function renderPosts(container, queryString) {
     return endOfData;
 }
 function renderPost(post) {
+    let loggedUser = Users_API.RetrieveLoggedUser();
     let date = convertToFrenchDate(UTC_To_Local(post.Date));
-    const canEdit = userCanEdit(post);
+    let crudIcons = "";
+    let faClass = "fa-regular";
+    let likers = "";
+    let loggedUserLiked = false;
+    
+    //vérifier id et name pour les likes
+    //Faire la liste des users qui ont liké le post en regardant leurs id et noms, extraire le nom
+    // Vérifier si l'usager est connecté
+    if (loggedUser) {
+        console.log(post.Likes);
+        // Si connecté, faire la liste des likers
+        // Vérifier si l'usager connecté a liké le post
+        post.Likes.forEach(user => {
+            likers += user.Name + "\n";
+            if (user.Name === loggedUser.Name && user.Id === loggedUser.Id) {
+                loggedUserLiked = true;
+                faClass = "fa-solid";
+            }
+        });
+    
+        // Puisque connecté, vérifier les cruds icônes à afficher
+        // Si le post.OwnerId est le même que l'usager connecté, on peut éditer/supprimer
+        // Si l'usager est admin ou super admin, on peut aussi éditer/supprimer
+        // Dans tous les cas, si l'usager est connecté, il peut liker, donc
+        // Afficher l'icône de like et le nombre de likes à côté. hover sur le nombre, affiche la liste des likers
+        if (post.OwnerId === loggedUser.Id || (loggedUser && (loggedUser.isAdmin || loggedUser.isSuper))) {
+            crudIcons += `<span postId='${post.Id}' class='editCmd cmdIconXSmall fa fa-pencil' title='Modifier le post'></span>`;
+            crudIcons += `<span postId='${post.Id}' class='deleteCmd cmdIconXSmall fa fa-trash' title='Supprimer le post'></span>`;
+        }
+        crudIcons += `<span postId='${post.Id}' class='likeCmd cmdIconXSmall ${faClass} fa-thumbs-up' title='Aimer le post'></span>
+            <span postId='${post.Id}' class='likeCount' title='${likers.trim()}'>${post.Likes.length}</span>`;
+    }
 
+    // afficher à gauche de la date, l'avatar du propriétaire du post et son nom à côté
     return $(`
         <div class="post" id="${post.Id}" etag="${currentETag}">
             <div class="postHeader">
                 ${post.Category}
-                ${canEdit ? `
-                <span class="editCmd cmdIconSmall fa fa-pencil" postId="${post.Id}" title="Modifier nouvelle"></span>
-                <span class="deleteCmd cmdIconSmall fa fa-trash" postId="${post.Id}" title="Effacer nouvelle"></span>
-                ` : ''}
+                ${crudIcons}
             </div>
             <div class="postTitle"> ${post.Title} </div>
             <img class="postImage" src='${post.Image}'/>
-            <div class="postDate"> ${date} </div>
+            <div class="postOwnerAndDate">
+                <div class="ownerLayout">
+                    <img class="UserAvatarXSmall" src='${post.OwnerAvatar}' alt="Avatar de ${post.OwnerName}" />
+                    <span class="postOwnerName">${post.OwnerName}</span>
+                </div>
+                <div class="postDate"> ${date} </div>
+            </div>
             <div postId="${post.Id}" class="postTextContainer hideExtra">
                 <div class="postText" >${post.Text}</div>
             </div>
@@ -520,8 +541,9 @@ function updateDropDownMenu() {
         `));
     $('#authCmd').on("click", async function () {
         if (authenticatedUser) {
-            await Users_API.Logout(currentUser.User);
+            await Users_API.Logout(currentUser);
             authenticatedUser = false;
+            currentUser = null;
             await showPosts(true);
             updateDropDownMenu();
         } else {
@@ -572,6 +594,21 @@ function attach_Posts_UI_Events_Callback() {
         $(`.postTextContainer[postId=${$(this).attr("postId")}]`).addClass('hideExtra');
         $(`.postTextContainer[postId=${$(this).attr("postId")}]`).removeClass('showExtra');
     })
+    $(".likeCmd").off();
+    $(".likeCmd").on("click", async function () {
+        let postId = $(this).attr("postId");
+        let loggedUser = Users_API.RetrieveLoggedUser();
+        if (loggedUser) {
+            let response = await Posts_API.ToggleLike(postId, loggedUser.Id);
+            if (!Posts_API.error) {
+                updatePost(postId);
+            } else {
+                showError(Posts_API.currentHttpError);
+            }
+        } else {
+            showError("Vous devez être connecté pour aimer un post.");
+        }
+    });
 }
 function addWaitingGif() {
     clearTimeout(waiting);
@@ -790,8 +827,6 @@ function getFormData($form) {
     });
     return jsonObject;
 }
-
-
 async function renderError(message) {
     await Posts_API.logout();
     updateDropDownMenu();

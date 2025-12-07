@@ -36,7 +36,7 @@
 .postHeader {
     color: blue;
     display: grid;
-    grid-template-columns: auto 26px 40px;
+    grid-template-columns: auto 10px 40px 26px 26px;
     align-items: center;
     height: 34px;
     text-transform: uppercase;
