@@ -183,7 +183,11 @@ function showRegisterForm() {
     renderCreateProfil();
 }
 function showProfileForm() {
-    showUserForm("Mon profil", "edit");
+    hidePosts();
+    renderEditProfil();
+    $("#form").show();
+    $("#commit").hide();
+    $("#abort").show();
 }
 function showUserForm(title, formType) {
     hidePosts();
@@ -223,7 +227,7 @@ function renderLoginForm() {
 
         if (!Users_API.error && result) {
             authenticatedUser = true;
-            currentUser = result.user;
+            currentUser = result.User;
             updateDropDownMenu();
             await showPosts(true);
         } else {
@@ -315,7 +319,7 @@ function renderUserForm(formType) {
 
         if (!Users_API.error && result) {
             authenticatedUser = true;
-            currentUser = result; // AccountsController renvoie le nouvel utilisateur ou modifié
+            currentUser = result.User; // AccountsController renvoie le nouvel utilisateur ou modifié
             updateDropDownMenu();
             await showPosts(true);
         } else {
@@ -353,7 +357,7 @@ function renderCreateProfil() {
     noTimeout();
     $("#form").empty();
     $("#form").append(`
-        <form class="form" id="createProfilForm"'>
+        <form class="form" id="updateProfilForm"'>
             <fieldset>
                 <legend>Adresse ce courriel</legend>
                 <input  type="email"
@@ -433,13 +437,114 @@ function renderCreateProfil() {
         createProfil(profil);
     });
 }
+function renderEditProfil() {
+    $("#viewTitle").text("Modification");
+    noTimeout();
+    $("#form").empty();
+    $("#form").append(`
+        <form class="form" id="updateProfilForm"'>
+            <fieldset>
+                <legend>Adresse ce courriel</legend>
+                <input  type="email"
+                        class="form-control Email"
+                        name="Email"
+                        id="Email"
+                        value=${currentUser.Email}
+                        placeholder="Courriel"
+                        required
+                        RequireMessage = 'Veuillez entrer votre courriel'
+                        InvalidMessage = 'Courriel invalide'
+                        CustomErrorMessage ="Ce courriel est déjà utilisé"/>
+                <input  class="form-control MatchedInput"
+                        type="text"
+                        matchedInputId="Email"
+                        name="matchedEmail"
+                        id="matchedEmail"
+                        value=${currentUser.Email}
+                        placeholder="Vérification"
+                        required
+                        RequireMessage = 'Veuillez entrez de nouveau votre courriel'
+                        InvalidMessage="Les courriels ne correspondent pas" />
+            </fieldset>
+            <fieldset>
+                <legend>Mot de passe</legend>
+                <input  type="password"
+                        class="form-control"
+                        name="Password"
+                        id="Password"
+                        placeholder="Mot de passe"
+                        InvalidMessage = 'Mot de passe trop court'/>
+                <input  class="form-control MatchedInput"
+                        type="password"
+                        matchedInputId="Password"
+                        name="matchedPassword"
+                        id="matchedPassword"
+                        placeholder="Vérification"
+                        InvalidMessage="Ne correspond pas au mot de passe" />
+            </fieldset>
+            <fieldset>
+                <legend>Nom</legend>
+                <input  type="text"
+                        class="form-control Alpha"
+                        name="Name"
+                        id="Name"
+                        value=${currentUser.Name}
+                        placeholder="Nom"
+                        required
+                        RequireMessage = 'Veuillez entrer votre nom'
+                        InvalidMessage = 'Nom invalide'/>
+            </fieldset>
+            <fieldset>
+                <legend>Avatar</legend>
+                <div class='imageUploader'
+                        newImage='false'
+                        controlId='Avatar'
+                        imageSrc='${currentUser.Avatar}'
+                        waitingImage="images/Loading_icon.gif">
+            </div>
+            </fieldset>
+   
+            <input type='submit' name='submit' id='saveUser' value="Enregistrer" class="form-control btn-primary formButton">
+        </form>
+        <div class="cancel">
+            <button class="form-control btn-secondary formButton" id="abortUpdateProfilCmd">Annuler</button>
+        </div>
+    `);
+    initImageUploaders();
+    initFormValidation(); // important do to after all html injection!
+    $('#abortUpdateProfilCmd').on('click', showPosts);
+    addConflictValidation(Users_API.checkConflictURL(currentUser.Id), 'Email' /* field unicity check */, 'saveUser' /* form submit button Id */);
+    $('#updateProfilForm').on("submit", function (event) {
+        let profil = getFormData($('#updateProfilForm'));
+        delete profil.matchedPassword;
+        delete profil.matchedEmail;
+        if (profil.Password == "")
+            profil.Password = currentUser.Password
+        event.preventDefault();
+        updateProfil(profil);
+    });
+}
+
 //////////////////////////// Posts rendering /////////////////////////////////////////////////////////////
 async function createProfil(profil) {
     result = await Users_API.Register(profil);
 
     if (!Users_API.error && result) {
             authenticatedUser = true;
-            currentUser = result; // AccountsController renvoie le nouvel utilisateur ou modifié
+            currentUser = result.User; // AccountsController renvoie le nouvel utilisateur ou modifié
+            updateDropDownMenu();
+            await showPosts(true);
+        } else {
+            showError(Users_API.currentHttpError || "Impossible d'enregistrer l'utilisateur");
+        }
+}
+
+async function updateProfil(profil) {
+    result = await Users_API.Update(profil);
+
+    if (!Users_API.error && result) {
+            authenticatedUser = true;
+            currentUser = result.User; // AccountsController renvoie le nouvel utilisateur ou modifié
             updateDropDownMenu();
             await showPosts(true);
         } else {
@@ -605,8 +710,17 @@ function updateDropDownMenu() {
     let authIcon = authenticatedUser 
         ? "fa-solid fa-arrow-right-from-bracket" 
         : "fa-solid fa-arrow-right-to-bracket";
+    let editLabel = "Modifier votre profil";
+    let editIcon = "fa-solid fa-user-pen";
 
     DDMenu.empty();
+    if (authenticatedUser) {
+        DDMenu.append($(`
+        <div class="dropdown-item menuItemLayout" id="editCmd">
+            <i class="menuIcon ${editIcon} mx-2"></i> ${editLabel}
+        </div>
+        `));
+    }
     DDMenu.append($(`
         <div class="dropdown-item menuItemLayout" id="authCmd">
             <i class="menuIcon ${authIcon} mx-2"></i> ${authLabel}
@@ -647,6 +761,9 @@ function updateDropDownMenu() {
         } else {
             showLoginForm();
         }
+    });
+    $('#editCmd').on("click", function () {
+        showProfileForm();
     });
     $('#aboutCmd').on("click", function () {
         showAbout();

@@ -26,8 +26,12 @@ class Users_API {
         this.currentStatus = xhr.status;
         this.error = true;
     }
-    static checkConflictURL() {
-        return this.serverHost() + "/accounts/conflict";
+    static checkConflictURL(userId = null) {
+        let url = this.serverHost() + "/accounts/conflict"
+        if (userId) {
+            url += `?userId=${userId}`;
+        }
+        return url;
     }
     // ---------------------------
     // GET ALL USERS
@@ -74,7 +78,7 @@ class Users_API {
                 data: JSON.stringify(credentials),
                 success: (data) => {
                     sessionStorage.setItem("loggedUser", JSON.stringify(data));
-                    resolve({ user: data });
+                    resolve(data);
                 },
                 error: (xhr) => { 
                     this.setHttpErrorState(xhr); 
@@ -92,7 +96,7 @@ class Users_API {
 
         return new Promise(resolve => {
             $.ajax({
-                url: this.serverHost() + "/Accounts/logout/?userId=" + user.User.Id,
+                url: this.serverHost() + "/Accounts/logout/?userId=" + user.Id,
                 type: "GET",
                 data: { userId: user.Id },
                 contentType: "application/json",
