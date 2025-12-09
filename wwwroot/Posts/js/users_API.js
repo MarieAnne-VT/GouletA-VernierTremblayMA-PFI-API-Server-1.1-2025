@@ -52,7 +52,7 @@ class Users_API {
 
     const parsed = JSON.parse(data);
     return parsed.User ?? null;
-}
+    }
 
 
     // ---------------------------

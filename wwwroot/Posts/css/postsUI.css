@@ -36,11 +36,18 @@
 .postHeader {
     color: blue;
     display: grid;
-    grid-template-columns: auto 10px 40px 26px 26px;
+    grid-template-columns: 1fr 30px 30px 30px 40px;
     align-items: center;
     height: 34px;
     text-transform: uppercase;
+    gap: 5px;
 }
+
+.postHeader .category { grid-column: 1; }
+.postHeader .editCmd { grid-column: 2; }
+.postHeader .deleteCmd { grid-column: 3; }
+.postHeader .likeCmd { grid-column: 4; }
+.postHeader .likeCount { grid-column: 5; }
 
 .postTitle {
     font-size: 26px;
