@@ -245,7 +245,7 @@ function renderLoginForm(message = "") {
             await showPosts(true);
 
             console.log("Login successful, starting timeout timer");
-            initTimeout(30, async () => {
+            initTimeout(timeoutDelay, async () => {
                 await Users_API.Logout(currentUser);
                 authenticatedUser = false;
                 currentUser = null;

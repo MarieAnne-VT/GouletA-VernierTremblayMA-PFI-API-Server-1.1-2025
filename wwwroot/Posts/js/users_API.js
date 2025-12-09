@@ -66,9 +66,9 @@ class Users_API {
     // ---------------------------
     static async Login(credentials) {
         this.initHttpState();
-        initTimeout(10, () => {
+        /*initTimeout(10, () => {
             Users_API.Logout(this.RetrieveLoggedUser());
-        });
+        });*/
 
         return new Promise(resolve => {
             $.ajax({

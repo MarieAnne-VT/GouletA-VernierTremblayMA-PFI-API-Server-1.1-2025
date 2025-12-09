@@ -1,15 +1,17 @@
 function createTimeoutPopup(message = "") {
-    $('body').append(`
-        <div class='popup'> 
-            <div class='popupContent'>
-                <div>
-                    <div class='popupHearder'> Attention!</div> 
-                    <h4 id='popUpMessage'>${message}</h4>
+    if ($(".popup").length === 0) { // si elle n'existe pas encore
+        $('body').append(`
+            <div class='popup' style='display:none'> 
+                <div class='popupContent'>
+                    <div>
+                        <div class='popupHeader'>Attention!</div> 
+                        <h4 id='popUpMessage'></h4>
+                    </div>
+                    <div onclick='closePopup();' class='close-btn fa fa-close'></div> 
                 </div>
-                <div onclick='closePopup(); ' class='close-btn fa fa-close'></div> 
-            </div>
-        </div> 
-    `);
+            </div> 
+        `);
+    }
 }
 
 let currentTimeouID = undefined;
@@ -21,7 +23,8 @@ let timeLeft = infinite;
 let maxStallingTime = infinite;
 
 function popupMessage(message) {
-    createTimeoutPopup(message);
+    createTimeoutPopup();
+    $("#popUpMessage").text(message);
     $(".popup").show();
 }
 
@@ -50,8 +53,8 @@ function startCountdown() {
     if (timeLeft != infinite) {
         currentTimeouID = setInterval(() => {
             timeLeft = timeLeft - 1;
-            console.log('session timeout counting', timeLeft)
             if (timeLeft > 0) {
+                //console.log('session timeout counting', timeLeft)
                 if (timeLeft <= 10) {
                     $(".popup").show();
                     $("#popUpMessage").text("Expiration dans " + timeLeft + " secondes");
