@@ -6,6 +6,7 @@ const periodicRefreshPeriod = 10;
 const waitingGifTrigger = 2000;
 const minKeywordLenth = 3;
 const keywordsOnchangeDelay = 500;
+const timeoutDelay = 30; // 30 secondes pour tests
 
 let categories = [];
 let selectedCategory = "";
@@ -125,16 +126,26 @@ async function showPosts(reset = false) {
     $("#viewTitle").text("Fil de nouvelles");
     periodic_Refresh_paused = false;
     await postsPanel.show(reset);
+
+    // Restart timeout countdown
+    if (authenticatedUser) {
+        console.log("Restarting timeout countdown in showPosts()");
+        timeout();
+    }
 }
 function hidePosts() {
     postsPanel.hide();
     hideSearchIcon();
+    noTimeout();
+    console.log("No Timeout in hidePosts()");
     $("#createPost").hide();
     $('#menu').hide();
     periodic_Refresh_paused = true;
 }
 function showForm() {
     hidePosts();
+    noTimeout();
+    console.log("No Timeout in showForm()");
     $('#form').show();
     $('#commit').show();
     $('#abort').show();
@@ -168,7 +179,7 @@ function showAbout() {
 
 ///////////////////////////// Authentication & user forms //////////////////////////////////////
 
-function showLoginForm() {
+function showLoginForm(message = "") {
     hidePosts();
     $("#viewTitle").text("Connexion");
     $("#form").show().empty();
@@ -176,7 +187,7 @@ function showLoginForm() {
     $('#commit').hide();  // On enlève commit
     $('#abort').show();   // Abort reste fonctionnel
 
-    renderLoginForm();
+    renderLoginForm(message);
 }
 function showRegisterForm() {
     // showUserForm("Inscription", "register");
@@ -198,12 +209,14 @@ function showUserForm(title, formType) {
 
     renderUserForm(formType);
 }
-function renderLoginForm() {
+function renderLoginForm(message = "") {
 
     $("#form").empty();
 
     $("#form").append(`
         <form id="loginForm" class="form">
+         ${message ? `<div id="loginMessage" style="color:red; margin-bottom:10px;">${message}</div>` : ''}
+            
             <label for="Email">Courriel :</label>
             <input class="form-control" type="email" id="Email" name="Email" required>
 
@@ -230,9 +243,18 @@ function renderLoginForm() {
             currentUser = result.User;
             updateDropDownMenu();
             await showPosts(true);
+
+            console.log("Login successful, starting timeout timer");
+            initTimeout(30, async () => {
+                await Users_API.Logout(currentUser);
+                authenticatedUser = false;
+                currentUser = null;
+                updateDropDownMenu();
+                showLoginForm("Votre session est expirée. Veuillez vous reconnecter.");
+            });
+            timeout();
         } else {
-            const msg = Users_API.currentHttpError || "Identifiants invalides";
-            showError(msg);
+            showError(Users_API.currentHttpError || "Identifiants invalides");
         }
     });
 
@@ -636,7 +658,6 @@ function renderPost(post) {
     //Faire la liste des users qui ont liké le post en regardant leurs id et noms, extraire le nom
     // Vérifier si l'usager est connecté
     if (loggedUser) {
-        console.log(post.Likes);
         // Si connecté, faire la liste des likers
         // Vérifier si l'usager connecté a liké le post
         post.Likes.forEach(user => {
@@ -925,7 +946,6 @@ async function renderDeletePostForm(id) {
                     await showPosts();
                 }
                 else {
-                    console.log(Posts_API.currentHttpError)
                     showError(Posts_API.currentHttpError);
                 }
             });
@@ -949,7 +969,7 @@ function newPost() {
     return Post;
 }
 function renderPostForm(post = null) {
-    timeout();
+    noTimeout();
     let create = post == null;
     if (create) post = newPost();
     $("#form").show();

@@ -35,8 +35,8 @@ function noTimeout() {
     $(".popup").hide();
     clearTimeout(currentTimeouID);
 }
-function setidleTime(idleTime = 20 * 60) {
-    maxStallingTime = idleTime;
+function setiddleTime(iddleTime = 20 * 60) {
+    maxStallingTime = iddleTime;
     timeout();
 }
 function timeout() {
@@ -50,8 +50,8 @@ function startCountdown() {
     if (timeLeft != infinite) {
         currentTimeouID = setInterval(() => {
             timeLeft = timeLeft - 1;
+            console.log('session timeout counting', timeLeft)
             if (timeLeft > 0) {
-                //console.log('session timeout counting', timeLeft)
                 if (timeLeft <= 10) {
                     $(".popup").show();
                     $("#popUpMessage").text("Expiration dans " + timeLeft + " secondes");
