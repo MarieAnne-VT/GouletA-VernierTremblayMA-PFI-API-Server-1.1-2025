@@ -1,5 +1,5 @@
 function createTimeoutPopup(message = "") {
-    if ($(".popup").length === 0) { // si elle n'existe pas encore
+    if ($(".popup").length === 0) {
         $('body').append(`
             <div class='popup' style='display:none'> 
                 <div class='popupContent'>
