@@ -495,6 +495,7 @@ function renderEditProfil() {
                         name="Password"
                         id="Password"
                         placeholder="Mot de passe"
+                        value=""
                         InvalidMessage = 'Mot de passe trop court'/>
                 <input  class="form-control MatchedInput"
                         type="password"
@@ -502,6 +503,7 @@ function renderEditProfil() {
                         name="matchedPassword"
                         id="matchedPassword"
                         placeholder="Vérification"
+                        value=""
                         InvalidMessage="Ne correspond pas au mot de passe" />
             </fieldset>
             <fieldset>
@@ -535,13 +537,13 @@ function renderEditProfil() {
     initImageUploaders();
     initFormValidation(); // important do to after all html injection!
     $('#abortUpdateProfilCmd').on('click', showPosts);
-    addConflictValidation(Users_API.checkConflictURL(currentUser.Id), 'Email' /* field unicity check */, 'saveUser' /* form submit button Id */);
+    // addConflictValidation(Users_API.checkConflictURL(currentUser.Id), 'Email' /* field unicity check */, 'saveUser' /* form submit button Id */);
     $('#updateProfilForm').on("submit", function (event) {
         let profil = getFormData($('#updateProfilForm'));
         delete profil.matchedPassword;
         delete profil.matchedEmail;
-        if (profil.Password == "")
-            profil.Password = currentUser.Password
+        profil.Id = currentUser.Id;
+        
         event.preventDefault();
         updateProfil(profil);
     });

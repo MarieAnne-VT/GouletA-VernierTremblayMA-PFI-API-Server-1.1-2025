@@ -60,7 +60,13 @@ class Users_API {
     return parsed.User ?? null;
     }
 
+    static RetrieveToken() {
+        let data = sessionStorage.getItem("loggedUser");
+        if (!data) return null;
 
+        const parsed = JSON.parse(data);
+        return parsed.Access_token ?? null;
+    }
     // ---------------------------
     // LOGIN
     // ---------------------------
@@ -133,11 +139,13 @@ class Users_API {
     // ---------------------------
     static async Update(user) {
         this.initHttpState();
+        let token = this.RetrieveToken();
         return new Promise(resolve => {
             $.ajax({
-                url: this.USERS_API_URL() + "/" + user.Email, // utilise Email comme clé
+                url: this.serverHost() + "/accounts/modify", // utilise Email comme clé
                 type: "PUT",
                 contentType: "application/json",
+                headers: {"authorization": token},
                 data: JSON.stringify(user),
                 success: (data) => resolve(data),
                 error: (xhr) => { this.setHttpErrorState(xhr); resolve(null); }

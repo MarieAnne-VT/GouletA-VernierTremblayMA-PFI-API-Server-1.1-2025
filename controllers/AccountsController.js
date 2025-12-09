@@ -203,16 +203,5 @@ export default class AccountsController extends Controller {
         }
     }
 
-    conflict() {
-        if (this.repository != null) {
-            let id = this.HttpContext.path.params.Id;
-            let email = this.HttpContext.path.params.Email;
-            if (id && email) {
-                let prototype = { Id: id, Email: email };
-                this.HttpContext.response.JSON(this.repository.checkConflict(prototype));
-            } else
-                this.HttpContext.response.JSON(false);
-        } else
-            this.HttpContext.response.JSON(false);
-    }
+    
 }
