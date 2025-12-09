@@ -433,7 +433,6 @@ function renderPost(post) {
     //Faire la liste des users qui ont liké le post en regardant leurs id et noms, extraire le nom
     // Vérifier si l'usager est connecté
     if (loggedUser) {
-        console.log(post.Likes);
         // Si connecté, faire la liste des likers
         // Vérifier si l'usager connecté a liké le post
         post.Likes.forEach(user => {

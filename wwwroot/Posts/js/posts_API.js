@@ -146,7 +146,7 @@ class Posts_API {
         this.initHttpState();
         return new Promise(resolve => {
             $.ajax({
-                url: this.LIKES_API_URL() + `?PostId=${postId}`, // <-- correction ici
+                url: this.LIKES_API_URL() + `?PostId=${postId}`,
                 complete: data => resolve(data.responseJSON),
                 error: xhr => { this.setHttpErrorState(xhr); resolve([]); }
             });

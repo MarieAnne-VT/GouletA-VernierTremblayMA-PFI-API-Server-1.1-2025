@@ -60,6 +60,9 @@ class Users_API {
     // ---------------------------
     static async Login(credentials) {
         this.initHttpState();
+        initTimeout(10, () => {
+            Users_API.Logout(this.RetrieveLoggedUser());
+        });
 
         return new Promise(resolve => {
             $.ajax({
@@ -87,7 +90,7 @@ class Users_API {
 
         return new Promise(resolve => {
             $.ajax({
-                url: this.serverHost() + "/Accounts/logout/",
+                url: this.serverHost() + "/Accounts/logout/?userId=" + user.User.Id,
                 type: "GET",
                 data: { userId: user.Id },
                 contentType: "application/json",
