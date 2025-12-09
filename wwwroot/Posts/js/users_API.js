@@ -26,7 +26,9 @@ class Users_API {
         this.currentStatus = xhr.status;
         this.error = true;
     }
-
+    static checkConflictURL() {
+        return this.serverHost() + "/accounts/conflict";
+    }
     // ---------------------------
     // GET ALL USERS
     // ---------------------------

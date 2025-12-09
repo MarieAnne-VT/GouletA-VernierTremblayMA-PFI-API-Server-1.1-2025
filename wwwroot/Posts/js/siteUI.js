@@ -179,7 +179,8 @@ function showLoginForm() {
     renderLoginForm();
 }
 function showRegisterForm() {
-    showUserForm("Inscription", "register");
+    // showUserForm("Inscription", "register");
+    renderCreateProfil();
 }
 function showProfileForm() {
     showUserForm("Mon profil", "edit");
@@ -346,8 +347,105 @@ function renderUserForm(formType) {
     // Abort → retour posts
     $('#abort').off().on("click", async () => showPosts(true));
 }
-//////////////////////////// Posts rendering /////////////////////////////////////////////////////////////
 
+function renderCreateProfil() {
+    $("#viewTitle").text("Inscription");
+    noTimeout();
+    $("#form").empty();
+    $("#form").append(`
+        <form class="form" id="createProfilForm"'>
+            <fieldset>
+                <legend>Adresse ce courriel</legend>
+                <input  type="email"
+                        class="form-control Email"
+                        name="Email"
+                        id="Email"
+                        placeholder="Courriel"
+                        required
+                        RequireMessage = 'Veuillez entrer votre courriel'
+                        InvalidMessage = 'Courriel invalide'
+                        CustomErrorMessage ="Ce courriel est déjà utilisé"/>
+                <input  class="form-control MatchedInput"
+                        type="text"
+                        matchedInputId="Email"
+                        name="matchedEmail"
+                        id="matchedEmail"
+                        placeholder="Vérification"
+                        required
+                        RequireMessage = 'Veuillez entrez de nouveau votre courriel'
+                        InvalidMessage="Les courriels ne correspondent pas" />
+            </fieldset>
+            <fieldset>
+                <legend>Mot de passe</legend>
+                <input  type="password"
+                        class="form-control"
+                        name="Password"
+                        id="Password"
+                        placeholder="Mot de passe"
+                        required
+                        RequireMessage = 'Veuillez entrer un mot de passe'
+                        InvalidMessage = 'Mot de passe trop court'/>
+                <input  class="form-control MatchedInput"
+                        type="password"
+                        matchedInputId="Password"
+                        name="matchedPassword"
+                        id="matchedPassword"
+                        placeholder="Vérification" required
+                        InvalidMessage="Ne correspond pas au mot de passe" />
+            </fieldset>
+            <fieldset>
+                <legend>Nom</legend>
+                <input  type="text"
+                        class="form-control Alpha"
+                        name="Name"
+                        id="Name"
+                        placeholder="Nom"
+                        required
+                        RequireMessage = 'Veuillez entrer votre nom'
+                        InvalidMessage = 'Nom invalide'/>
+            </fieldset>
+            <fieldset>
+                <legend>Avatar</legend>
+                <div class='imageUploader'
+                        newImage='true'
+                        controlId='Avatar'
+                        imageSrc='no-avatar.png'
+                        waitingImage="images/Loading_icon.gif">
+            </div>
+            </fieldset>
+   
+            <input type='submit' name='submit' id='saveUser' value="Enregistrer" class="form-control btn-primary formButton">
+        </form>
+        <div class="cancel">
+            <button class="form-control btn-secondary formButton" id="abortCreateProfilCmd">Annuler</button>
+        </div>
+    `);
+    $('#loginCmd').on('click', renderLoginForm);
+    initImageUploaders();
+    initFormValidation(); // important do to after all html injection!
+    $('#abortCreateProfilCmd').on('click', renderLoginForm);
+    addConflictValidation(Users_API.checkConflictURL(), 'Email' /* field unicity check */, 'saveUser' /* form submit button Id */);
+    $('#createProfilForm').on("submit", function (event) {
+        let profil = getFormData($('#createProfilForm'));
+        delete profil.matchedPassword;
+        delete profil.matchedEmail;
+        event.preventDefault();
+        createProfil(profil);
+    });
+}
+//////////////////////////// Posts rendering /////////////////////////////////////////////////////////////
+async function createProfil(profil) {
+    result = await Users_API.Register(profil);
+
+    if (!Users_API.error && result) {
+            authenticatedUser = true;
+            currentUser = result; // AccountsController renvoie le nouvel utilisateur ou modifié
+            updateDropDownMenu();
+            await showPosts(true);
+        } else {
+            showError(Users_API.currentHttpError || "Impossible d'enregistrer l'utilisateur");
+        }
+}
 function start_Periodic_Refresh() {
 
     setInterval(async () => {
@@ -433,6 +531,7 @@ function renderPost(post) {
     //Faire la liste des users qui ont liké le post en regardant leurs id et noms, extraire le nom
     // Vérifier si l'usager est connecté
     if (loggedUser) {
+        console.log(post.Likes);
         // Si connecté, faire la liste des likers
         // Vérifier si l'usager connecté a liké le post
         post.Likes.forEach(user => {
