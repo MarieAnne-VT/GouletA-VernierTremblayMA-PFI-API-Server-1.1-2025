@@ -533,7 +533,7 @@ function renderEditProfil() {
     `);
     initImageUploaders();
     initFormValidation(); // important do to after all html injection!
-    $('#abortUpdateProfilCmd').on('click', showPosts);
+    $('#abortUpdateProfilCmd').on('click', async function () {await showPosts(true)});
     // addConflictValidation(Users_API.checkConflictURL(currentUser.Id), 'Email' /* field unicity check */, 'saveUser' /* form submit button Id */);
     $('#updateProfilForm').on("submit", function (event) {
         let profil = getFormData($('#updateProfilForm'));
@@ -546,7 +546,6 @@ function renderEditProfil() {
     });
 }
 
-//////////////////////////// Posts rendering /////////////////////////////////////////////////////////////
 async function createProfil(profil) {
     result = await Users_API.Register(profil);
 
@@ -565,13 +564,16 @@ async function updateProfil(profil) {
 
     if (!Users_API.error && result) {
             authenticatedUser = true;
-            currentUser = result.User; // AccountsController renvoie le nouvel utilisateur ou modifié
+            currentUser = result; // AccountsController renvoie le nouvel utilisateur ou modifié
             updateDropDownMenu();
             await showPosts(true);
         } else {
             showError(Users_API.currentHttpError || "Impossible d'enregistrer l'utilisateur");
         }
 }
+
+//////////////////////////// Posts rendering /////////////////////////////////////////////////////////////
+
 function start_Periodic_Refresh() {
 
     setInterval(async () => {
