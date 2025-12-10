@@ -129,7 +129,6 @@ async function showPosts(reset = false) {
 
     // Restart timeout countdown
     if (authenticatedUser) {
-        console.log("Restarting timeout countdown in showPosts()");
         timeout();
     }
 }
@@ -137,7 +136,6 @@ function hidePosts() {
     postsPanel.hide();
     hideSearchIcon();
     noTimeout();
-    console.log("No Timeout in hidePosts()");
     $("#createPost").hide();
     $('#menu').hide();
     periodic_Refresh_paused = true;
@@ -145,7 +143,6 @@ function hidePosts() {
 function showForm() {
     hidePosts();
     noTimeout();
-    console.log("No Timeout in showForm()");
     $('#form').show();
     $('#commit').show();
     $('#abort').show();
@@ -214,7 +211,7 @@ function renderLoginForm(message = "") {
     $("#form").empty();
 
     $("#form").append(`
-        <form id="loginForm" class="form">
+        <form id="loginForm" class="loginform">
          ${message ? `<div id="loginMessage" style="color:red; margin-bottom:10px;">${message}</div>` : ''}
             
             <label for="Email">Courriel :</label>
@@ -738,6 +735,13 @@ function updateDropDownMenu() {
 
     DDMenu.empty();
     if (authenticatedUser) {
+        if(currentUser && currentUser.isAdmin){
+            DDMenu.append($(`
+            <div class="dropdown-item menuItemLayout" id="adminCmd">
+                <i class="fa-solid fa-users-gear"></i> Gestion des usagers
+            </div>
+            `));
+        }
         DDMenu.append($(`
         <div class="dropdown-item menuItemLayout" id="editCmd">
             <i class="menuIcon ${editIcon} mx-2"></i> ${editLabel}
@@ -774,6 +778,9 @@ function updateDropDownMenu() {
             <i class="menuIcon fa fa-info-circle mx-2"></i> À propos...
         </div>
         `));
+    $('#adminCmd').on("click", function () {
+        showUserManagement();
+    });
     $('#authCmd').on("click", async function () {
         if (authenticatedUser) {
             await Users_API.Logout(currentUser);
@@ -1095,4 +1102,67 @@ async function renderError(message) {
             </fieldset>
         `)
     );
+}
+
+function showUserManagement() {
+    noTimeout();
+
+    hidePosts();
+    $('#form').hide();
+    $('#commit').hide();
+    $('#abort').hide();
+    $("#createPost").hide();
+    $("#viewTitle").text("Gestion des usagers");
+
+    renderUserManagementPanel();
+}
+
+
+// Pris de Contacts et changé noms variables still gotta work on it
+async function renderUsers() {
+    showWaitingGif();
+    $("#actionTitle").text("Liste des usagers");
+    $("#createUser").show();
+    $("#abort").hide();
+    let users = await API_GetUsers();
+    eraseContent();
+    if (users !== null) {
+        users.forEach(user => {
+            $("#content").append(renderUser(user));
+        });
+        restoreContentScrollPosition();
+        // Attached click events on command icons
+        $(".editCmd").on("click", function () {
+            saveContentScrollPosition();
+            renderEditUserForm($(this).attr("editUserId"));
+        });
+        $(".deleteCmd").on("click", function () {
+            saveContentScrollPosition();
+            renderDeleteUserForm($(this).attr("deleteUserId"));
+        });
+        $(".userRow").on("click", function (e) { e.preventDefault(); })
+    } else {
+        renderError("Service introuvable");
+    }
+}
+
+function renderUser(user) {
+    return $(`
+     <div class="userRow" user_id=${user.Id}">
+        <div class="userContainer noselect">
+            <div class="userLayout">
+                 <div class="avatar" style="background-image:url('${user.Avatar}')"></div>
+                 <div class="userInfo">
+                    <span class="userName">${user.Name}</span>
+                    <span class="userPhone">${user.Phone}</span>
+                    <a href="mailto:${user.Email}" class="userEmail" target="_blank" >${user.Email}</a>
+                </div>
+            </div>
+            <div class="userCommandPanel">
+                <span class="editCmd cmdIcon fa fa-pencil" editUserId="${user.Id}" title="Modifier ${user.Name}"></span>
+                <span class="deleteCmd cmdIcon fa fa-trash" deleteUserId="${user.Id}" title="Effacer ${user.Name}"></span>
+            </div>
+        </div>
+    </div>           
+    `);
 }
