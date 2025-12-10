@@ -19,12 +19,13 @@ let showKeywords = false;
 let keywordsOnchangeTimger = null;
 let authenticatedUser = false;
 let currentUser = null;
+let unauthenticatedId = null;
 
 Init_UI();
 async function Init_UI() {
     const storedUser = Users_API.RetrieveLoggedUser();
     if (storedUser) {
-        authenticatedUser = true;
+        authenticatedUser = storedUser.VerifyCode == "verified";
         currentUser = storedUser;
     }
 
@@ -43,9 +44,14 @@ async function Init_UI() {
         showPosts();
     });
 
-    installKeywordsOnkeyupEvent();
-    await showPosts();
-    start_Periodic_Refresh();
+    if (!authenticatedUser && currentUser != null){
+        showVerificationForm();
+    }
+    else {
+        installKeywordsOnkeyupEvent();
+        await showPosts();
+        start_Periodic_Refresh();
+    }
 
     /* determine if elem is in viewport */
     $.fn.isInViewport = function () { /* insert a new method to jquery sizzle */
@@ -190,22 +196,21 @@ function showRegisterForm() {
     // showUserForm("Inscription", "register");
     renderCreateProfil();
 }
-function showProfileForm() {
+function showEditProfileForm() {
     hidePosts();
     renderEditProfil();
     $("#form").show();
     $("#commit").hide();
     $("#abort").show();
 }
-function showUserForm(title, formType) {
+function showVerificationForm() {
     hidePosts();
-    $("#viewTitle").text(title);
-    $("#form").show().empty();
+    renderVerificationForm();
+    $("#form").show();
     $("#commit").hide();
     $("#abort").show();
-
-    renderUserForm(formType);
 }
+
 function renderLoginForm(message = "") {
 
     $("#form").empty();
@@ -236,6 +241,65 @@ function renderLoginForm(message = "") {
         const result = await Users_API.Login(credentials);
 
         if (!Users_API.error && result) {
+            currentUser = result.User;
+            authenticatedUser = currentUser.VerifyCode == "verified";
+
+            if (authenticatedUser){
+                updateDropDownMenu();
+                await showPosts(true);
+
+                console.log("Login successful, starting timeout timer");
+                initTimeout(timeoutDelay, async () => {
+                    await Users_API.Logout(currentUser);
+                    authenticatedUser = false;
+                    currentUser = null;
+                    updateDropDownMenu();
+                    showLoginForm("Votre session est expirée. Veuillez vous reconnecter.");
+                });
+                timeout();
+            }
+            else {
+                renderVerificationForm();
+            }
+        } else {
+            showError(Users_API.currentHttpError || "Identifiants invalides");
+        }
+    });
+
+    // Nouveau compte
+    $("#btnRegister").on("click", () => showRegisterForm());
+
+    // Abort → retour au fil
+    $('#abort').off().on("click", async () => showPosts(true));
+}
+
+function renderVerificationForm(message = "") {
+
+    $("#form").empty();
+
+    $("#form").append(`
+        <form id="verifForm" class="loginform">
+         ${message ? `<div id="loginMessage" style="color:red; margin-bottom:10px;">${message}</div>` 
+         : ''}
+
+            <div id="msg" style="margin-bottom:10px; font-weight:bold;">Veullez entrer le code de vérification que vous avez reçu par courriel</div>
+            <input id="Id" name="Id" value="${currentUser.Id}" hidden>
+            <input class="form-control" type="text" id="VerifyCode" name="VerifyCode" required placeholder="Code de vérification courriel">
+            <div class="mt-3 d-flex flex-column gap-2">
+                <button type="submit" class="btn btn-primary">Vérifier</button>
+            </div>
+        </form>
+    `);
+
+    // Bouton Entrer
+    $("#verifForm").on("submit", async function (e) {
+        e.preventDefault();
+
+        const verifyInfo = getFormData($("#verifForm"));
+
+        const result = await Users_API.Verify(verifyInfo);
+
+        if (!Users_API.error && result) {
             authenticatedUser = true;
             currentUser = result.User;
             updateDropDownMenu();
@@ -244,7 +308,7 @@ function renderLoginForm(message = "") {
             console.log("Login successful, starting timeout timer");
             initTimeout(timeoutDelay, async () => {
                 await Users_API.Logout(currentUser);
-                authenticatedUser = false;
+                // authenticatedUser = false;
                 currentUser = null;
                 updateDropDownMenu();
                 showLoginForm("Votre session est expirée. Veuillez vous reconnecter.");
@@ -259,116 +323,7 @@ function renderLoginForm(message = "") {
     $("#btnRegister").on("click", () => showRegisterForm());
 
     // Abort → retour au fil
-    $('#abort').off().on("click", async () => showPosts(true));
-}
-function renderUserForm(formType) {
-
-    const isRegister = formType === "register";
-    const isProfile  = formType === "edit";
-
-    $("#form").empty();
-
-    $("#form").append(`
-        <form id="userForm" class="form">
-            <label for="Email">Courriel :</label>
-            <input class="form-control" type="email" id="Email" name="Email" required ${isProfile ? "disabled" : ""}>
-
-            <label for="Password">Mot de passe :</label>
-            <input class="form-control" type="password" id="Password" name="Password" required>
-
-            <label for="Name">Nom complet :</label>
-            <input class="form-control" type="text" id="Name" name="Name" required>
-            ${( isRegister || isProfile ) ? 
-                `
-                <label class="form-label">Avatar </label>
-                <div class='imageUploaderContainer'>
-                    <div class='imageUploader' 
-                        newImage='${isProfile}' 
-                        controlId='Avatar' 
-                        imageSrc='${'https://duckduckgo.com/i/8ad526d2092ee39b.png'}' 
-                        waitingImage="Loading_icon.gif">
-                    </div>
-                </div>
-                `
-            : ``}
-            <div class="mt-3 d-flex flex-column gap-2">
-                <button type="submit" class="btn btn-primary">
-                    Enregistrer
-                </button>
-
-                ${isRegister ? `
-                    <button type="button" class="btn btn-secondary" id="btnCancel">Annuler</button>
-                ` : `
-                    <button type="button" class="btn btn-danger" id="btnDelete">
-                        Effacer le compte
-                    </button>
-                `}
-            </div>
-        </form>
-    `);
-
-    initImageUploaders();
-    // Charger profil si modification
-    if (isProfile && currentUser) {
-        $("#Email").val(currentUser.Email);
-        $("#Name").val(currentUser.Name);
-    }
-
-    // Enregistrer
-    $("#userForm").on("submit", async function (e) {
-        e.preventDefault();
-
-        const userPayload = getFormData($("#userForm"));
-        // {
-        //     Name: $("#Name").val(),
-        //     Email: $("#Email").val(),
-        //     Password: $("#Password").val(),
-        //     Avatar: $("#Avatar")
-        // };
-
-        let result;
-        if (isRegister) {
-            // POST /accounts/register
-            result = await Users_API.Register(userPayload);
-        } else {
-            // PUT /accounts/modify
-            userPayload.Id = currentUser.Id; // nécessaire pour AccountsController
-            result = await Users_API.Update(userPayload);
-        }
-
-        if (!Users_API.error && result) {
-            authenticatedUser = true;
-            currentUser = result.User; // AccountsController renvoie le nouvel utilisateur ou modifié
-            updateDropDownMenu();
-            await showPosts(true);
-        } else {
-            showError(Users_API.currentHttpError || "Impossible d'enregistrer l'utilisateur");
-        }
-    });
-
-    // Annuler inscription
-    if (isRegister) {
-        $("#btnCancel").on("click", async () => showPosts(true));
-    }
-
-    // Effacer compte
-    if (!isRegister) {
-        $("#btnDelete").on("click", async () => {
-            if (!currentUser?.Id) return;
-            const deleted = await Users_API.Delete(currentUser.Id); // utilise Id
-            if (!Users_API.error && deleted) {
-                authenticatedUser = false;
-                currentUser = null;
-                updateDropDownMenu();
-                await showPosts(true);
-            } else {
-                showError(Users_API.currentHttpError || "Impossible d'effacer le compte");
-            }
-        });
-    }
-
-    // Abort → retour posts
-    $('#abort').off().on("click", async () => showPosts(true));
+    $('#abort').off().on("click", async () => {Users_API.Logout(currentUser); showPosts(true); });
 }
 
 function renderCreateProfil() {
@@ -462,6 +417,7 @@ function renderEditProfil() {
     $("#form").empty();
     $("#form").append(`
         <form class="form" id="updateProfilForm"'>
+            <input hidden id="Id" name="Id" value="${currentUser.Id}">
             <fieldset>
                 <legend>Adresse ce courriel</legend>
                 <input  type="email"
@@ -534,7 +490,7 @@ function renderEditProfil() {
     initImageUploaders();
     initFormValidation(); // important do to after all html injection!
     $('#abortUpdateProfilCmd').on('click', async function () {await showPosts(true)});
-    // addConflictValidation(Users_API.checkConflictURL(currentUser.Id), 'Email' /* field unicity check */, 'saveUser' /* form submit button Id */);
+    addConflictValidation(Users_API.checkConflictURL(), 'Email' /* field unicity check */, 'saveUser' /* form submit button Id */);
     $('#updateProfilForm').on("submit", function (event) {
         let profil = getFormData($('#updateProfilForm'));
         delete profil.matchedPassword;
@@ -550,7 +506,7 @@ async function createProfil(profil) {
     result = await Users_API.Register(profil);
 
     if (!Users_API.error && result) {
-            authenticatedUser = true;
+            authenticatedUser = false;
             currentUser = result.User; // AccountsController renvoie le nouvel utilisateur ou modifié
             updateDropDownMenu();
             await showPosts(true);
@@ -563,10 +519,17 @@ async function updateProfil(profil) {
     result = await Users_API.Update(profil);
 
     if (!Users_API.error && result) {
-            authenticatedUser = true;
+            authenticatedUser = result.VerifyCode == "verified";
             currentUser = result; // AccountsController renvoie le nouvel utilisateur ou modifié
-            updateDropDownMenu();
-            await showPosts(true);
+                updateDropDownMenu();
+            
+            if (authenticatedUser)
+            {
+                await showPosts(true);
+            }
+            else {
+                showVerificationForm();
+            }
         } else {
             showError(Users_API.currentHttpError || "Impossible d'enregistrer l'utilisateur");
         }
@@ -795,7 +758,7 @@ function updateDropDownMenu() {
         }
     });
     $('#editCmd').on("click", function () {
-        showProfileForm();
+        showEditProfileForm();
     });
     $('#aboutCmd').on("click", function () {
         showAbout();

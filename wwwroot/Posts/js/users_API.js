@@ -26,12 +26,8 @@ class Users_API {
         this.currentStatus = xhr.status;
         this.error = true;
     }
-    static checkConflictURL(userId = null) {
-        let url = this.serverHost() + "/accounts/conflict"
-        if (userId) {
-            url += `?userId=${userId}`;
-        }
-        return url;
+    static checkConflictURL() {
+        return this.serverHost() + "/accounts/conflict";
     }
     // ---------------------------
     // GET ALL USERS
@@ -164,6 +160,33 @@ class Users_API {
                 type: "DELETE",
                 success: () => resolve(true),
                 error: (xhr) => { this.setHttpErrorState(xhr); resolve(null); }
+            });
+        });
+    }
+
+
+    // ---------------------------
+    // VERIFY USER
+    // ---------------------------
+    static async Verify(verifyInfo) {
+        this.initHttpState();
+        /*initTimeout(10, () => {
+            Users_API.Logout(this.RetrieveLoggedUser());
+        });*/
+
+        return new Promise(resolve => {
+            $.ajax({
+                url: this.serverHost() + "/Accounts/verify",
+                type: "GET",
+                contentType: "application/json",
+                data: {id: verifyInfo.Id, code: verifyInfo.VerifyCode},
+                success: (data) => {
+                    resolve(data);
+                },
+                error: (xhr) => { 
+                    this.setHttpErrorState(xhr); 
+                    resolve(null); 
+                }
             });
         });
     }
