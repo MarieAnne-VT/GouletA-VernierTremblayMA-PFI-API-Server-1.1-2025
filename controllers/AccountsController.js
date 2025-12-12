@@ -203,17 +203,5 @@ export default class AccountsController extends Controller {
         }
     }
 
-    // GET: /accounts
-    getAll() {
-        if (AccessControl.writeGranted(this.HttpContext.authorizations, AccessControl.admin())) {
-            if (this.repository != null) {
-                let users = this.repository.getAll();
-                this.HttpContext.response.JSON(users);
-            } else {
-                this.HttpContext.response.notImplemented();
-            }
-        } else {
-            this.HttpContext.response.unAuthorized();
-        }
-    }
+    
 }

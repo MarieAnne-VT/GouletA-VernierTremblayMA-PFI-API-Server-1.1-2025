@@ -781,7 +781,7 @@ function updateDropDownMenu() {
         </div>
         `));
     $('#adminCmd').on("click", function () {
-        renderUsers();
+        showUserManagement();
     });
     $('#authCmd').on("click", async function () {
         if (authenticatedUser) {
@@ -1074,7 +1074,7 @@ function getFormData($form) {
     return jsonObject;
 }
 async function renderError(message) {
-    await Users_API.Logout();
+    await Posts_API.logout();
     updateDropDownMenu();
     switch (Posts_API.currentStatus) {
         case 401:
@@ -1106,69 +1106,65 @@ async function renderError(message) {
     );
 }
 
-async function renderUsers(container = $("#content")) {
-    addWaitingGif();
-    $("#viewtitle").text("Liste des usagers");
+function showUserManagement() {
+    noTimeout();
+
+    hidePosts();
+    $('#form').hide();
+    $('#commit').hide();
+    $('#abort').hide();
+    $("#createPost").hide();
+    $("#viewTitle").text("Gestion des usagers");
+
+    renderUserManagementPanel();
+}
+
+
+// Pris de Contacts et changé noms variables still gotta work on it
+async function renderUsers() {
+    showWaitingGif();
+    $("#actionTitle").text("Liste des usagers");
+    $("#createUser").show();
     $("#abort").hide();
-
-    container.empty(); // Clear previous content
-
-    let users = await Users_API.GetAll();
-    if (users !== null && Array.isArray(users.data)) {
-        users.data.forEach(user => {
-            if (user.Id !== currentUser.Id) // ne pas afficher l'usager courant
-                container.append(renderUser(user));
+    let users = await API_GetUsers();
+    eraseContent();
+    if (users !== null) {
+        users.forEach(user => {
+            $("#content").append(renderUser(user));
         });
-
         restoreContentScrollPosition();
-
-        // Events for promote, block, remove
-        /*
-        $(".promoteCmd").on("click", function () {
+        // Attached click events on command icons
+        $(".editCmd").on("click", function () {
             saveContentScrollPosition();
-            Users_API.PromoteUser($(this).attr("promoteUserId")).then(() => renderUsers(container));
+            renderEditUserForm($(this).attr("editUserId"));
         });
-
-        $(".blockCmd").on("click", function () {
+        $(".deleteCmd").on("click", function () {
             saveContentScrollPosition();
-            Users_API.BlockUser($(this).attr("blockUserId")).then(() => renderUsers(container));
+            renderDeleteUserForm($(this).attr("deleteUserId"));
         });
-
-        $(".removeCmd").on("click", function () {
-            saveContentScrollPosition();
-            Users_API.Delete($(this).attr("removeUserId")).then(() => renderUsers(container));
-        });
-
-        $(".userRow").on("click", function (e) { e.preventDefault(); });*/
+        $(".userRow").on("click", function (e) { e.preventDefault(); })
     } else {
         renderError("Service introuvable");
     }
-
-    removeWaitingGif();
 }
 
 function renderUser(user) {
     return $(`
-    <div class="contactRow userRow" user_id="${user.Id}">
-        <div class="contactContainer noselect">
-            <div class="contactLayout">
-                <div class="avatar">
-                    <img class="UserAvatarXSmall" src='${user.Avatar}' alt="Avatar de ${user.Name}" />
-                </div>
-                <div class="contactInfo">
-                    <span class="contactName">${user.Name}</span>
-                    <span class="contactPhone">${user.Phone || ''}</span>
-                    <a href="mailto:${user.Email}" class="contactEmail" target="_blank">${user.Email}</a>
-                    <a> Statut: ${user.isSuper ? 'Super Admin' : user.isAdmin ? 'Admin' : 'Usager'}</a>
-                    <a> Compte: ${user.isBlocked ? 'Bloqué' : 'Actif'}</a>
+     <div class="userRow" user_id=${user.Id}">
+        <div class="userContainer noselect">
+            <div class="userLayout">
+                 <div class="avatar" style="background-image:url('${user.Avatar}')"></div>
+                 <div class="userInfo">
+                    <span class="userName">${user.Name}</span>
+                    <span class="userPhone">${user.Phone}</span>
+                    <a href="mailto:${user.Email}" class="userEmail" target="_blank" >${user.Email}</a>
                 </div>
             </div>
-            <div class="contactCommandPanel">
-                <span class="cmdIcon fa fa-arrow-up promoteCmd" promoteUserId="${user.Id}" title="Promouvoir ${user.Name}"></span>
-                <span class="cmdIconRed fa fa-ban blockCmd" blockUserId="${user.Id}" title="Bloquer ${user.Name}"></span>
-                <span class="cmdIcon fa fa-trash removeCmd" removeUserId="${user.Id}" title="Supprimer ${user.Name}"></span>
+            <div class="userCommandPanel">
+                <span class="editCmd cmdIcon fa fa-pencil" editUserId="${user.Id}" title="Modifier ${user.Name}"></span>
+                <span class="deleteCmd cmdIcon fa fa-trash" deleteUserId="${user.Id}" title="Effacer ${user.Name}"></span>
             </div>
         </div>
-    </div>
+    </div>           
     `);
 }

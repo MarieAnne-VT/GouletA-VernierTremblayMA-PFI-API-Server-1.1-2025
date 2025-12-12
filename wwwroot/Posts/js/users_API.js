@@ -8,7 +8,7 @@ class Users_API {
     }
 
     static USERS_API_URL() { 
-        return this.serverHost() + "/api/accounts"; 
+        return this.serverHost() + "/api/users"; 
     }
 
     static initHttpState() {
@@ -29,6 +29,24 @@ class Users_API {
     static checkConflictURL() {
         return this.serverHost() + "/accounts/conflict";
     }
+    // ---------------------------
+    // GET ALL USERS
+    // ---------------------------
+    static async GetAll() {
+        this.initHttpState();
+        return new Promise(resolve => {
+            $.ajax({
+                url: this.USERS_API_URL(),
+                complete: data => {
+                    resolve({ 
+                        ETag: data.getResponseHeader('ETag'),
+                        data: data.responseJSON 
+                    });
+                },
+                error: (xhr) => { this.setHttpErrorState(xhr); resolve(null); }
+            });
+        });
+    }
 
     static RetrieveLoggedUser() {
     let data = sessionStorage.getItem("loggedUser");
@@ -45,15 +63,18 @@ class Users_API {
         const parsed = JSON.parse(data);
         return parsed.Access_token ?? null;
     }
-
     // ---------------------------
     // LOGIN
     // ---------------------------
     static async Login(credentials) {
         this.initHttpState();
+        /*initTimeout(10, () => {
+            Users_API.Logout(this.RetrieveLoggedUser());
+        });*/
+
         return new Promise(resolve => {
             $.ajax({
-                url: this.serverHost() + "/token", // login reste séparé
+                url: this.serverHost() + "/token",
                 type: "POST",
                 contentType: "application/json",
                 data: JSON.stringify(credentials),
@@ -61,22 +82,30 @@ class Users_API {
                     sessionStorage.setItem("loggedUser", JSON.stringify(data));
                     resolve(data);
                 },
-                error: (xhr) => { this.setHttpErrorState(xhr); resolve(null); }
+                error: (xhr) => { 
+                    this.setHttpErrorState(xhr); 
+                    resolve(null); 
+                }
             });
         });
     }
-// ---------------------------
+
+    // ---------------------------
     // LOGOUT
     // ---------------------------
     static async Logout(user) {
         this.initHttpState();
+
         return new Promise(resolve => {
             $.ajax({
-                url: this.USERS_API_URL() + `/logout/?userId=${user.Id}`,
+                url: this.serverHost() + "/Accounts/logout/?userId=" + user.Id,
                 type: "GET",
+                data: { userId: user.Id },
+                contentType: "application/json",
+                // success: (data) => resolve(data),
                 complete: (data) => {
                     sessionStorage.removeItem("loggedUser");
-                    resolve(data.responseJSON);
+                    resolve(data.responseJSON)
                 },
                 error: (xhr) => { this.setHttpErrorState(xhr); resolve(null); }
             });
@@ -88,9 +117,10 @@ class Users_API {
     // ---------------------------
     static async Register(newUser) {
         this.initHttpState();
+
         return new Promise(resolve => {
             $.ajax({
-                url: this.USERS_API_URL() + "/register",
+                url: this.serverHost() + "/Accounts/register",
                 type: "POST",
                 contentType: "application/json",
                 data: JSON.stringify(newUser),
@@ -101,34 +131,17 @@ class Users_API {
     }
 
     // ---------------------------
-    // VERIFY USER
-    // ---------------------------
-    static async Verify(verifyInfo) {
-        this.initHttpState();
-        return new Promise(resolve => {
-            $.ajax({
-                url: this.USERS_API_URL() + "/verify",
-                type: "GET",
-                contentType: "application/json",
-                data: { id: verifyInfo.Id, code: verifyInfo.VerifyCode },
-                success: (data) => resolve(data),
-                error: (xhr) => { this.setHttpErrorState(xhr); resolve(null); }
-            });
-        });
-    }
-
-    // ---------------------------
-    // MODIFY USER
+    // UPDATE USER
     // ---------------------------
     static async Update(user) {
         this.initHttpState();
         let token = this.RetrieveToken();
         return new Promise(resolve => {
             $.ajax({
-                url: this.USERS_API_URL() + "/modify",
+                url: this.serverHost() + "/accounts/modify", // utilise Email comme clé
                 type: "PUT",
                 contentType: "application/json",
-                headers: { "authorization": token },
+                headers: {"authorization": token},
                 data: JSON.stringify(user),
                 success: (data) => resolve(data),
                 error: (xhr) => { this.setHttpErrorState(xhr); resolve(null); }
@@ -136,78 +149,39 @@ class Users_API {
         });
     }
 
-    // Commencé Promote / Block / Remove mais pas terminé
     // ---------------------------
-    // PROMOTE USER
+    // DELETE USER
     // ---------------------------
-    /*static async Promote(userId) {
+    static async Delete(email) {
         this.initHttpState();
-        let token = this.RetrieveToken();
         return new Promise(resolve => {
             $.ajax({
-                url: this.serverHost() + "/accounts/promote",
-                type: "POST",
-                contentType: "application/json",
-                headers: { "authorization": token },
-                data: JSON.stringify({ Id: userId }),
-                success: data => resolve(data),
-                error: xhr => { this.setHttpErrorState(xhr); resolve(null); }
+                url: this.USERS_API_URL() + "/" + email, // utilise Email comme clé
+                type: "DELETE",
+                success: () => resolve(true),
+                error: (xhr) => { this.setHttpErrorState(xhr); resolve(null); }
             });
         });
     }
 
-    // ---------------------------
-    // BLOCK USER
-    // ---------------------------
-    static async Block(userId) {
-        this.initHttpState();
-        let token = this.RetrieveToken();
-        return new Promise(resolve => {
-            $.ajax({
-                url: this.serverHost() + "/accounts/block",
-                type: "POST",
-                contentType: "application/json",
-                headers: { "authorization": token },
-                data: JSON.stringify({ Id: userId }),
-                success: data => resolve(data),
-                error: xhr => { this.setHttpErrorState(xhr); resolve(null); }
-            });
-        });
-    }
 
     // ---------------------------
-    // REMOVE USER
+    // VERIFY USER
     // ---------------------------
-    static async Remove(userId) {
+    static async Verify(verifyInfo) {
         this.initHttpState();
-        let token = this.RetrieveToken();
-        return new Promise(resolve => {
-            $.ajax({
-                url: this.serverHost() + "/accounts/remove/" + userId,
-                type: "GET", // ou DELETE si tu modifies ton routeur
-                contentType: "application/json",
-                headers: { "authorization": token },
-                success: data => resolve(data),
-                error: xhr => { this.setHttpErrorState(xhr); resolve(null); }
-            });
-        });
-    }*/
+        /*initTimeout(10, () => {
+            Users_API.Logout(this.RetrieveLoggedUser());
+        });*/
 
-    // ---------------------------
-    // GET ALL USERS (ADMIN ONLY)
-    // ---------------------------
-    static async GetAll() {
-        this.initHttpState();
-        const token = this.RetrieveToken(); // récupère le token du sessionStorage
         return new Promise(resolve => {
             $.ajax({
-                url: this.USERS_API_URL(),
-                headers: { "Authorization": `Bearer ${token}` }, // <-- obligatoire
-                complete: data => {
-                    resolve({ 
-                        ETag: data.getResponseHeader('ETag'),
-                        data: data.responseJSON 
-                    });
+                url: this.serverHost() + "/Accounts/verify",
+                type: "GET",
+                contentType: "application/json",
+                data: {id: verifyInfo.Id, code: verifyInfo.VerifyCode},
+                success: (data) => {
+                    resolve(data);
                 },
                 error: (xhr) => { 
                     this.setHttpErrorState(xhr); 
