@@ -206,6 +206,16 @@ function showUserForm(title, formType) {
 
     renderUserForm(formType);
 }
+
+function showDeleteProfilForm() {
+    hidePosts();
+    $("#viewTitle").text("");
+    $("#form").show().empty();
+    $("#commit").hide();
+    $("#abort").hide();
+
+    renderDeleteProfil();
+}
 function renderLoginForm(message = "") {
 
     $("#form").empty();
@@ -260,6 +270,32 @@ function renderLoginForm(message = "") {
 
     // Abort → retour au fil
     $('#abort').off().on("click", async () => showPosts(true));
+}
+
+function renderDeleteProfil() {
+    $("#viewTitle").text("Supression");
+    noTimeout();
+    $("#form").empty();
+    $("#form").append(`
+        <div class="submit">
+            <button class="form-control btn-danger formButton" id="deleteProfilCmd">Supprimer mon compte</button>
+        </div>
+        <div class="cancel">
+            <button class="form-control btn-secondary formButton" id="abortDeleteProfilCmd">Annuler</button>
+        </div>
+    `);
+    initFormValidation(); // important do to after all html injection!
+    $('#abortDeleteProfilCmd').on('click', function () {showProfileForm()});
+    // addConflictValidation(Users_API.checkConflictURL(currentUser.Id), 'Email' /* field unicity check */, 'saveUser' /* form submit button Id */);
+    $('#deleteProfilCmd').on("click", async function (event) {        
+        event.preventDefault();
+        // updateProfil(profil);
+
+        Users_API.Remove(currentUser.Id);
+        await Users_API.Logout(currentUser);
+        currentUser = null;
+        await showPosts(true)
+    });
 }
 function renderUserForm(formType) {
 
@@ -355,7 +391,7 @@ function renderUserForm(formType) {
     if (!isRegister) {
         $("#btnDelete").on("click", async () => {
             if (!currentUser?.Id) return;
-            const deleted = await Users_API.Delete(currentUser.Id); // utilise Id
+            const deleted = await Users_API.Remove(currentUser.Id); // utilise Id
             if (!Users_API.error && deleted) {
                 authenticatedUser = false;
                 currentUser = null;
@@ -529,11 +565,13 @@ function renderEditProfil() {
         </form>
         <div class="cancel">
             <button class="form-control btn-secondary formButton" id="abortUpdateProfilCmd">Annuler</button>
+            <button class="form-control btn-secondary formButton" id="deleteProfilCmd">Effacer le compte</button>
         </div>
     `);
     initImageUploaders();
     initFormValidation(); // important do to after all html injection!
     $('#abortUpdateProfilCmd').on('click', async function () {await showPosts(true)});
+    $('#deleteProfilCmd').on('click', function () {showDeleteProfilForm()});
     // addConflictValidation(Users_API.checkConflictURL(currentUser.Id), 'Email' /* field unicity check */, 'saveUser' /* form submit button Id */);
     $('#updateProfilForm').on("submit", function (event) {
         let profil = getFormData($('#updateProfilForm'));
@@ -737,13 +775,13 @@ function updateDropDownMenu() {
 
     DDMenu.empty();
     if (authenticatedUser) {
-        if(currentUser && currentUser.isAdmin){
-            DDMenu.append($(`
-            <div class="dropdown-item menuItemLayout" id="adminCmd">
-                <i class="fa-solid fa-users-gear"></i> Gestion des usagers
-            </div>
-            `));
-        }
+    //     if(currentUser && currentUser.isAdmin){
+    //         DDMenu.append($(`
+    //         <div class="dropdown-item menuItemLayout" id="adminCmd">
+    //             <i class="fa-solid fa-users-gear"></i> Gestion des usagers
+    //         </div>
+    //         `));
+    //     }
         DDMenu.append($(`
         <div class="dropdown-item menuItemLayout" id="editCmd">
             <i class="menuIcon ${editIcon} mx-2"></i> ${editLabel}

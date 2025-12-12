@@ -41,7 +41,7 @@ export default class AccessControl {
             if (requiredAccess.writeAccess == 0) return true;
             if (HttpContext.user && HttpContext.authorizations)
                 return (
-                    authorizations.writeAccess >= requiredAccess.writeAccess ||
+                    HttpContext.authorizations.writeAccess >= requiredAccess.writeAccess ||
                     HttpContext.user.Id == id
                 );
             else

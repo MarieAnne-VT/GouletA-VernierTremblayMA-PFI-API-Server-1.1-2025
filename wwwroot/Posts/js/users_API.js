@@ -150,20 +150,23 @@ class Users_API {
     }
 
     // ---------------------------
-    // DELETE USER
+    // REMOVE USER
     // ---------------------------
-    static async Delete(email) {
+    
+    static async Remove(userId) {
         this.initHttpState();
+        let token = this.RetrieveToken();
         return new Promise(resolve => {
             $.ajax({
-                url: this.USERS_API_URL() + "/" + email, // utilise Email comme clé
-                type: "DELETE",
-                success: () => resolve(true),
-                error: (xhr) => { this.setHttpErrorState(xhr); resolve(null); }
+                url: this.serverHost() + "/accounts/remove/" + userId,
+                type: "GET", // ou DELETE si tu modifies ton routeur
+                contentType: "application/json",
+                headers: { "authorization": token },
+                success: data => resolve(data),
+                error: xhr => { this.setHttpErrorState(xhr); resolve(null); }
             });
         });
     }
-
 
     // ---------------------------
     // VERIFY USER
