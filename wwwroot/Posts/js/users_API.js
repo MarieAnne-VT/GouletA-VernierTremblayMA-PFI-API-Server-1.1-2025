@@ -4,7 +4,7 @@
 
 class Users_API {
     static serverHost() {
-        return "https://pfi-gouleta-vernier-tremblerma-hrdpc7bkhug2gbce.eastus-01.azurewebsites.net/";
+        return "https://pfi-gouleta-vernier-tremblerma-hrdpc7bkhug2gbce.eastus-01.azurewebsites.net";
     }
 
     static USERS_API_URL() { 

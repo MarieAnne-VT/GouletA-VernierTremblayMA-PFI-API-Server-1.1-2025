@@ -6,7 +6,7 @@
 class Posts_API {
     static serverHost() {
         // return "https://linuxapiserver.azurewebsites.net";
-        return "https://pfi-gouleta-vernier-tremblerma-hrdpc7bkhug2gbce.eastus-01.azurewebsites.net/";
+        return "https://pfi-gouleta-vernier-tremblerma-hrdpc7bkhug2gbce.eastus-01.azurewebsites.net";
     }
     static POSTS_API_URL() { return this.serverHost() + "/api/posts" };
     static LIKES_API_URL() { return this.serverHost() + "/api/postlikes" };

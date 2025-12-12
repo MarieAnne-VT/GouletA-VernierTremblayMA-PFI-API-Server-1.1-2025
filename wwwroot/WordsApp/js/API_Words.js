@@ -1,5 +1,5 @@
 //const API_URL = "https://api-server-2025.azurewebsites.net/api/words";
-const API_URL = "https://pfi-gouleta-vernier-tremblerma-hrdpc7bkhug2gbce.eastus-01.azurewebsites.net//api/words";
+const API_URL = "https://pfi-gouleta-vernier-tremblerma-hrdpc7bkhug2gbce.eastus-01.azurewebsites.net/api/words";
 class API {
     static initHttpState() {
         this.currentHttpError = "";
