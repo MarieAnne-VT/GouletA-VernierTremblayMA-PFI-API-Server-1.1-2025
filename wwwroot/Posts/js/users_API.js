@@ -4,7 +4,7 @@
 
 class Users_API {
     static serverHost() {
-        return "http://localhost:5000";
+        return "https://pfi-gouleta-vernier-tremblerma-hrdpc7bkhug2gbce.eastus-01.azurewebsites.net/";
     }
 
     static USERS_API_URL() { 

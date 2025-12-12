@@ -1,5 +1,5 @@
 //const API_URL = "hhttps://api-server-2025.azurewebsites.net/api/contacts";
-const API_URL = "http://localhost:5000/api/contacts";
+const API_URL = "https://pfi-gouleta-vernier-tremblerma-hrdpc7bkhug2gbce.eastus-01.azurewebsites.net//api/contacts";
 let currentHttpError = "";
 
 function API_getcurrentHttpError () {

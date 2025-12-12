@@ -33,13 +33,13 @@
 // 2025
 /////////////////////////////////////////////////////////////////////
 import * as utilities from '../utilities.js';
-// http://localhost:5000/api/contacts?fields=Name
-// http://localhost:5000/api/bookmarks?fields=Category&limit=4&offset=1
-// http://localhost:5000/api/bookmarks?fields=Category,Title&limit=3&offset=1&Category=c*&sort=Category,-Title
-// http://localhost:5000/api/words?sort=-Val
-// http://localhost:5000/api/words?sort=Val&limit=5&offset=20&Val=*z&fields=Val,Def,Gen
-// http://localhost:5000/api/Hurricanes?sort=-Year&limit=3&offset=0
-// http://localhost:5000/api/Hurricanes?Year.start=2020&Year.end=2024 
+// https://pfi-gouleta-vernier-tremblerma-hrdpc7bkhug2gbce.eastus-01.azurewebsites.net//api/contacts?fields=Name
+// https://pfi-gouleta-vernier-tremblerma-hrdpc7bkhug2gbce.eastus-01.azurewebsites.net//api/bookmarks?fields=Category&limit=4&offset=1
+// https://pfi-gouleta-vernier-tremblerma-hrdpc7bkhug2gbce.eastus-01.azurewebsites.net//api/bookmarks?fields=Category,Title&limit=3&offset=1&Category=c*&sort=Category,-Title
+// https://pfi-gouleta-vernier-tremblerma-hrdpc7bkhug2gbce.eastus-01.azurewebsites.net//api/words?sort=-Val
+// https://pfi-gouleta-vernier-tremblerma-hrdpc7bkhug2gbce.eastus-01.azurewebsites.net//api/words?sort=Val&limit=5&offset=20&Val=*z&fields=Val,Def,Gen
+// https://pfi-gouleta-vernier-tremblerma-hrdpc7bkhug2gbce.eastus-01.azurewebsites.net//api/Hurricanes?sort=-Year&limit=3&offset=0
+// https://pfi-gouleta-vernier-tremblerma-hrdpc7bkhug2gbce.eastus-01.azurewebsites.net//api/Hurricanes?Year.start=2020&Year.end=2024 
 
 export default class collectionFilter {
     constructor(collection, filterParams, model = null) {

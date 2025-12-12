@@ -231,7 +231,7 @@
     function webAPI_GET(queryString) {
         return new Promise(resolve => {
             $.ajax({
-                url: "http://localhost:5000/api/words" + queryString,
+                url: "https://pfi-gouleta-vernier-tremblerma-hrdpc7bkhug2gbce.eastus-01.azurewebsites.net//api/words" + queryString,
                 type: 'GET',
                 contentType: 'text/plain',
                 data: {},
