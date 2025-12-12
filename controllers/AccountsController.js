@@ -201,7 +201,9 @@ export default class AccountsController extends Controller {
         if (AccessControl.writeGrantedAdminOrOwner(this.HttpContext, this.requiredAuthorizations, id)) {
             // todo
             this.repository.remove(id)
-        }
+            this.HttpContext.response.accepted();
+        }else
+            this.HttpContext.response.unAuthorized();
     }
 
     
